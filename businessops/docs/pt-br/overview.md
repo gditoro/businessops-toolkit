@@ -18,7 +18,7 @@
 ## Modelo de Negócio
 - Modelo de receita: TRANSACTIONAL
 - Modelo de preço: NEGOTIATED
-- Descontos/negociação: YES
+- Descontos/negociação: UNKNOWN
 - Prazo de pagamento: 
 
 ## Panorama Operacional

@@ -18,7 +18,7 @@
 ## Business Model
 - Revenue model: TRANSACTIONAL
 - Pricing model: NEGOTIATED
-- Discounting: YES
+- Discounting: UNKNOWN
 - Payment terms: 
 
 ## Operations Snapshot

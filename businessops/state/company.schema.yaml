@@ -43,6 +43,19 @@ company:
   reporting:
     kpis_tracked_today: string?
 
+  org:
+    departments:
+      - name: string
+        owner: string
+        objective: string
+        kpis: [string]
+    roles:
+      - name: string
+        area: string
+        summary: string
+        hiring_trigger: string
+        can_be_outsourced: YES|NO
+
   compliance:
     regulated: YES|NO|UNKNOWN
 

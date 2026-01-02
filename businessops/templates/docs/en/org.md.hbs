@@ -2,39 +2,97 @@
 
 <!-- BO:BEGIN GENERATED -->
 ## Current / Planned Structure (High-Level)
-Lifecycle mode: **{{company.lifecycle_mode}}**
-Stage: **{{company.identity.stage}}**
-Team size: **{{company.identity.headcount_range}}**
+- Lifecycle mode: **{{company.lifecycle_mode}}**
+- Stage: **{{company.identity.stage}}**
+- Team size: **{{company.identity.headcount_range}}**
+- Packs: {{#each meta.packs}}**{{this}}**{{#unless @last}}, {{/unless}}{{/each}}
+- Delivery: **{{company.ops.delivery_type}}**
+- Outsourcing: **{{company.ops.outsourcing_level}}**
 
-### Outsourced Services
-{{company.ops.outsourced_services}}
+### Outsourced services
+{{#each company.ops.outsourced_services}}
+- {{this}}
+{{/each}}
 
-## ESSENTIAL Roles (Minimum Viable)
-> These roles must be owned internally (even if execution is partly outsourced).
+### Bottleneck
+{{#if company.ops.bottleneck}}
+- {{company.ops.bottleneck}}
+{{else}}
+- [ASSUMPTION] Current bottleneck is unclear ownership + cadence.
+{{/if}}
 
-| Area | Role | Core Responsibilities | Notes |
-|---|---|---|---|
-| Leadership | Founder / General Manager | Strategy, priorities, decision-making | Always required |
-| Finance Ops | Finance owner | Cash flow, AP/AR, pricing governance | Accounting can be outsourced |
-| Operations | Ops owner | Delivery, supplier/3PL governance, incident handling | Must have SLA oversight |
-| Sales | Sales owner | Pipeline, customers, pricing execution | Can start as founder-led |
-| Governance | Admin owner | Meetings cadence, reporting rhythm, documentation | Lightweight but critical |
+## Suggested departments (minimum executable)
+> Max 6 areas. At **{{company.identity.headcount_range}}** size, treat these as “hats” (one person can own multiple).
 
-## RECOMMENDED Roles (Scaling)
-| Area | Role | When to add | Why |
-|---|---|---|---|
-| People | HR / Talent | Hiring starts to accelerate | Improve retention and org clarity |
-| Marketing | Marketing | Inbound becomes important | Consistent positioning |
-| Product | Product / Offer owner | Many SKUs/offers | Better portfolio decisions |
-| Data | Analyst / BI | KPI complexity rises | Better decision-making |
+{{#if company.org.departments}}
+{{#each company.org.departments}}
+### {{name}}
+- **Objective:** {{objective}}
+- **Owner:** {{owner}}
+- **KPIs:** {{#each kpis}}`{{this}}`{{#unless @last}}, {{/unless}}{{/each}}
+- **Cost/complexity:** [ASSUMPTION] low–medium
+- **Risk mitigated:** [ASSUMPTION] unpredictability / rework / cash risk
+- **Expected impact:** [ASSUMPTION] more consistent execution
 
-## RACI (Starter)
-| Activity | R | A | C | I |
+{{/each}}
+{{else}}
+_No structure persisted under `company.org.departments` yet._
+{{/if}}
+
+## Roles (by stage) + hiring triggers
+> In **{{company.identity.stage}}/{{company.identity.headcount_range}}**, make ownership explicit even if one person wears multiple hats.
+
+{{#if company.org.roles}}
+| Role | Area | Summary | Hiring trigger | Outsource-friendly? |
 |---|---|---|---|---|
-| Pricing changes | Sales | Founder | Finance | Ops |
-| Spending approvals | Finance | Founder | Ops | Team |
-| Supplier selection | Ops | Founder | Finance | Sales |
-| KPI reporting | Finance | Founder | Ops | Team |
+{{#each company.org.roles}}
+| {{name}} | {{area}} | {{summary}} | {{hiring_trigger}} | {{can_be_outsourced}} |
+{{/each}}
+{{else}}
+_No roles persisted under `company.org.roles` yet._
+{{/if}}
+
+## Mini-RACI (super practical)
+Roles:
+- **DIR** = Founder/Direction
+- **SAL** = Sales owner
+- **OPS** = Ops owner
+- **FIN** = Finance owner
+- **ACC(V)** = Accounting vendor
+- **3PL(V)** = Warehouse/3PL vendor (if any)
+- **BROKER(V)** = Customs broker vendor (if any)
+
+| Process | R | A | C | I |
+|---|---|---|---|---|
+| Lead → Qualification | SAL | SAL | DIR | FIN, OPS |
+| Proposal / Pricing | SAL | DIR | FIN | OPS |
+| Order confirmation | SAL | SAL | OPS | FIN |
+| Invoicing / Taxes | FIN | FIN | ACC(V), SAL | OPS |
+| Fulfillment (pick/ship) | OPS (or 3PL(V)) | OPS | SAL | FIN, DIR |
+| Collections / Receipts | FIN | FIN | SAL | DIR |
+| Replenishment / Purchasing | OPS | DIR | FIN, SAL | ACC(V) |
+| Inventory / Accuracy | OPS (or 3PL(V)) | OPS | FIN | DIR |
+| Monthly close + filings | ACC(V) | FIN | DIR | OPS, SAL |
+| Support / Returns | Support | OPS | SAL | FIN |
+
+## Outsourced governance (ready-to-run)
+### Accounting — ESSENTIAL
+- **Objective:** predictable close and filings.
+- **Internal owner:** Finance owner.
+- **Suggested SLAs:** close by **D+10**; responses in **1 business day**; tax guides with **3 business days** lead time. [ASSUMPTION]
+- **Monthly checklist:** reconciliation; taxes; invoicing; expenses; accruals; P&L; open issues.
+- **Vendor KPIs:** days to close; rework rate; fines/late filings = 0.
+
+### Warehouse/3PL — if applicable
+- **Internal owner:** Ops owner.
+- **SLAs:** inventory accuracy; OTIF; damages; ship time.
+
+### Customs broker — if applicable
+- **Internal owner:** Ops owner.
+- **SLAs:** daily status; documentation alerts; predictable clearance.
+
+## Questions to refine (one round)
+1) Besides accounting, do you use a **warehouse/3PL** and/or a **customs broker**? (NONE / 3PL / BROKER / BOTH / NOT SURE)
 <!-- BO:END GENERATED -->
 
 ## Notes (editable)
