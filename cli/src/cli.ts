@@ -3,6 +3,8 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { generateCommand } from "./commands/generate.js";
 import { initCommand } from "./commands/init.js";
+import { wizardCommand } from "./commands/wizard.js";
+
 
 const program = new Command();
 
@@ -13,6 +15,7 @@ program
 
 program.addCommand(initCommand);
 program.addCommand(generateCommand);
+program.addCommand(wizardCommand);
 
 program.addHelpText(
   "after",
