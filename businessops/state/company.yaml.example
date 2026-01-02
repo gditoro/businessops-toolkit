@@ -1,0 +1,58 @@
+company:
+  lifecycle_mode: NEW
+
+  identity:
+    name: ""
+    country: "Brazil"
+    one_liner: ""
+    stage: EARLY
+    headcount_range: SMALL
+    company_age: ""
+
+  market:
+    customer_type: ["B2B"]
+    icp: ""
+    customer_pains: ""
+    positioning: ""
+    acquisition_channels: ["OUTBOUND_SALES"]
+
+  revenue:
+    model: TRANSACTIONAL
+
+  pricing:
+    model: NEGOTIATED
+    discounting: YES
+
+  ops:
+    delivery_type: INVENTORY
+    complexity: MEDIUM
+    outsourcing_level: SOME
+    bottleneck: ""
+    outsourced_services: ["ACCOUNTING"]
+
+  processes:
+    order_to_cash_steps: ["LEAD", "QUOTE", "ORDER", "INVOICE", "DELIVERY", "COLLECTION", "SUPPORT"]
+
+  finance:
+    payment_terms: ""
+    revenue_range: ""
+    gross_margin_range: ""
+
+  reporting:
+    kpis_tracked_today: ""
+
+  compliance:
+    regulated: UNKNOWN
+
+  risks:
+    top: ""
+
+  goals:
+    days_90: ""
+    days_180: ""
+    days_365: ""
+
+meta:
+  country_mode: BR
+  language_preference: BILINGUAL
+  packs: ["industry-neutral"]

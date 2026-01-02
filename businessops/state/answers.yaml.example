@@ -1,0 +1,41 @@
+wizard:
+  workflow_id: businessops_wizard
+  version: 0.1
+  mode: robust
+
+answers:
+  lifecycle_mode: NEW
+  country_mode: BR
+  language_preference: BILINGUAL
+  industry_pack: industry-neutral
+
+  company_name: ""
+  country_specific: ""
+  one_liner: ""
+  stage: EARLY
+  headcount_range: SMALL
+  outsourced_services: ["ACCOUNTING"]
+
+  customer_type: ["B2B"]
+  icp: ""
+  top_pains: ""
+  positioning: ""
+  acquisition_channels: ["OUTBOUND_SALES"]
+
+  revenue_model: TRANSACTIONAL
+  pricing_model: NEGOTIATED
+  discounting: YES
+  payment_terms: ""
+
+  delivery_type: INVENTORY
+  supply_chain_complexity: MEDIUM
+  outsourcing_level: SOME
+  order_to_cash_steps: ["LEAD", "QUOTE", "ORDER", "INVOICE", "DELIVERY", "COLLECTION", "SUPPORT"]
+  biggest_ops_problem: ""
+
+  regulated: UNKNOWN
+  top_risks: ""
+
+  goals_90: ""
+  goals_180: ""
+  goals_365: ""
