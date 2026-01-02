@@ -1,0 +1,41 @@
+# Organization & Roles
+
+<!-- BO:BEGIN GENERATED -->
+## Current / Planned Structure (High-Level)
+Lifecycle mode: **NEW**
+Stage: **EARLY**
+Team size: **SMALL**
+
+### Outsourced Services
+ACCOUNTING
+
+## ESSENTIAL Roles (Minimum Viable)
+> These roles must be owned internally (even if execution is partly outsourced).
+
+| Area | Role | Core Responsibilities | Notes |
+|---|---|---|---|
+| Leadership | Founder / General Manager | Strategy, priorities, decision-making | Always required |
+| Finance Ops | Finance owner | Cash flow, AP/AR, pricing governance | Accounting can be outsourced |
+| Operations | Ops owner | Delivery, supplier/3PL governance, incident handling | Must have SLA oversight |
+| Sales | Sales owner | Pipeline, customers, pricing execution | Can start as founder-led |
+| Governance | Admin owner | Meetings cadence, reporting rhythm, documentation | Lightweight but critical |
+
+## RECOMMENDED Roles (Scaling)
+| Area | Role | When to add | Why |
+|---|---|---|---|
+| People | HR / Talent | Hiring starts to accelerate | Improve retention and org clarity |
+| Marketing | Marketing | Inbound becomes important | Consistent positioning |
+| Product | Product / Offer owner | Many SKUs/offers | Better portfolio decisions |
+| Data | Analyst / BI | KPI complexity rises | Better decision-making |
+
+## RACI (Starter)
+| Activity | R | A | C | I |
+|---|---|---|---|---|
+| Pricing changes | Sales | Founder | Finance | Ops |
+| Spending approvals | Finance | Founder | Ops | Team |
+| Supplier selection | Ops | Founder | Finance | Sales |
+| KPI reporting | Finance | Founder | Ops | Team |
+<!-- BO:END GENERATED -->
+
+## Notes (editable)
+Add your actual org chart, role descriptions, or hiring plan here.

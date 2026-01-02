@@ -2,6 +2,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import fs from "fs-extra";
 import path from "node:path";
+import { findRepoRoot } from "../lib/repoRoot.js";
 
 const DEFAULT_DIRS = [
   ".github",
@@ -20,7 +21,7 @@ export const initCommand = new Command("init")
   .description("Initialize BusinessOps Toolkit folder structure")
   .option("--force", "Overwrite existing files if needed", false)
   .action(async (opts) => {
-    const root = process.cwd();
+    const root = findRepoRoot();
     console.log(chalk.cyan("Initializing BusinessOps Toolkit in:"), root);
 
     for (const dir of DEFAULT_DIRS) {

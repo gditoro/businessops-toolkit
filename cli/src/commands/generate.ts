@@ -6,6 +6,7 @@ import Handlebars from "handlebars";
 import { loadYamlFile } from "../lib/yaml.js";
 import { renderTemplate } from "../lib/render.js";
 import { mergeGeneratedBlock } from "../lib/merge.js";
+import { findRepoRoot } from "../lib/repoRoot.js";
 
 export const generateCommand = new Command("generate")
   .description("Generate docs from templates and company state")
@@ -14,7 +15,7 @@ export const generateCommand = new Command("generate")
   .option("--out <path>", "Docs output folder", "businessops/docs")
   .option("--force", "Overwrite entire files (ignores generated block merge)", false)
   .action(async (opts) => {
-    const root = process.cwd();
+    const root = findRepoRoot();
     const statePath = path.join(root, opts.state);
     const templatesRoot = path.join(root, opts.templates);
     const outRoot = path.join(root, opts.out);
