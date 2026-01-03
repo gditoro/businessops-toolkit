@@ -1,0 +1,79 @@
+{
+  "name": "businessops-vscode",
+  "displayName": "BusinessOps Toolkit",
+  "description": "Wizard + generator runner for BusinessOps Toolkit (Copilot-friendly, multi-provider ready).",
+  "version": "0.1.0",
+  "publisher": "gammacrucis",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Productivity",
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:businessops.openWizard",
+    "onCommand:businessops.runGenerate",
+    "onCommand:businessops.openDocs",
+    "onView:businessops.view"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "businessops.openWizard",
+        "title": "BusinessOps: Open Wizard (Intake)"
+      },
+      {
+        "command": "businessops.runGenerate",
+        "title": "BusinessOps: Generate Docs"
+      },
+      {
+        "command": "businessops.openDocs",
+        "title": "BusinessOps: Open Docs Folder"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "businessops",
+          "title": "BusinessOps",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "businessops": [
+        {
+          "id": "businessops.view",
+          "name": "Toolkit"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "BusinessOps Toolkit",
+      "properties": {
+        "businessops.ai.provider": {
+          "type": "string",
+          "default": "none",
+          "description": "AI provider for suggestions (none | vscode-lm | openai | anthropic | ollama). MVP supports none."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "lint": "echo \"(optional) add eslint\"",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}

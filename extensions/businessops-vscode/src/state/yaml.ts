@@ -1,6 +1,6 @@
-import fs from "fs-extra";
-import yaml from "js-yaml";
-import path from "node:path";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import * as yaml from "js-yaml";
 
 export async function readYaml<T>(filePath: string): Promise<T | null> {
   try {
@@ -11,8 +11,11 @@ export async function readYaml<T>(filePath: string): Promise<T | null> {
   }
 }
 
-export async function writeYaml(filePath: string, data: any) {
+export async function writeYaml(filePath: string, data: any): Promise<void> {
   const raw = yaml.dump(data, { noRefs: true, lineWidth: 120 });
-  await fs.ensureDir(path.dirname(filePath));
+
+  // ✅ Ensure directory exists
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+
   await fs.writeFile(filePath, raw, "utf8");
 }

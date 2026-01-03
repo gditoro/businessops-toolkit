@@ -2,78 +2,107 @@ import { Command } from "commander";
 import chalk from "chalk";
 import fs from "fs-extra";
 import path from "node:path";
-import Handlebars from "handlebars";
-import { loadYamlFile } from "../lib/yaml.js";
-import { renderTemplate } from "../lib/render.js";
-import { mergeGeneratedBlock } from "../lib/merge.js";
 import { findRepoRoot } from "../lib/repoRoot.js";
+import { readYaml } from "../lib/yaml.js";
+
+function fillGeneratedBlock(template: string, generated: string) {
+  const begin = "<!-- BO:BEGIN GENERATED -->";
+  const end = "<!-- BO:END GENERATED -->";
+
+  if (template.includes(begin) && template.includes(end)) {
+    const before = template.split(begin)[0] + begin;
+    const after = end + template.split(end)[1];
+    return `${before}\n${generated}\n${after}`;
+  }
+
+  // If markers missing, append safely
+  return `${template}\n\n${begin}\n${generated}\n${end}\n`;
+}
+
+function makeOverview(lang: "en" | "pt-br", company: any) {
+  const name = company?.company?.identity?.name || "Company";
+  const one = company?.company?.identity?.one_liner || "";
+  const pack = (company?.meta?.packs || []).join(", ");
+  const mode = company?.meta?.country_mode || "BR";
+  const stage = company?.company?.identity?.stage || "EARLY";
+
+  if (lang === "en") {
+    return `## ${name}
+
+**One-liner:** ${one}
+
+**Mode:** ${mode}
+**Pack(s):** ${pack}
+**Stage:** ${stage}
+
+### Next recommended steps
+- Run /structure in Copilot or use the VS Code Wizard
+- Define ICP and customer pains
+- Set 90-day goals and KPIs
+`;
+  }
+
+  return `## ${name}
+
+**Resumo:** ${one}
+
+**Modo:** ${mode}
+**Pack(s):** ${pack}
+**Estágio:** ${stage}
+
+### Próximos passos recomendados
+- Rodar /structure no Copilot ou usar o Wizard do VS Code
+- Definir ICP e dores do cliente
+- Definir metas e KPIs de 90 dias
+`;
+}
 
 export const generateCommand = new Command("generate")
-  .description("Generate docs from templates and company state")
-  .option("--state <path>", "Path to company.yaml", "businessops/state/company.yaml")
-  .option("--templates <path>", "Templates folder", "businessops/templates/docs")
-  .option("--out <path>", "Docs output folder", "businessops/docs")
-  .option("--force", "Overwrite entire files (ignores generated block merge)", false)
-  .action(async (opts) => {
+  .description("Generate docs from templates + company.yaml (deterministic)")
+  .action(async () => {
     const root = findRepoRoot();
-    const statePath = path.join(root, opts.state);
-    const templatesRoot = path.join(root, opts.templates);
-    const outRoot = path.join(root, opts.out);
 
-    console.log(chalk.cyan("Loading state:"), statePath);
-    const state = await loadYamlFile(statePath);
+    const companyPath = path.join(root, "businessops", "state", "company.yaml");
+    const company = await readYaml<any>(companyPath);
 
-    const langPref = state?.meta?.language_preference ?? "BILINGUAL";
-    const langs =
-      langPref === "BILINGUAL" ? ["en", "pt-br"] : [langPref.toLowerCase()];
-
-    // Ensure country default based on country_mode
-    if (!state?.company?.identity) state.company = { identity: {} };
-    if (!state.company.identity.country) {
-      state.company.identity.country = state.meta?.country_mode === "BR" ? "Brazil" : "Global";
+    if (!company) {
+      console.log(chalk.red("Missing company.yaml. Run init first:"));
+      console.log(chalk.yellow("  npm run dev --prefix cli -- init"));
+      process.exit(1);
     }
 
-    Handlebars.registerHelper("json", (context) => JSON.stringify(context, null, 2));
+    const languagePref = company?.meta?.language_preference || "BILINGUAL";
 
-    console.log(chalk.cyan("Generating docs for languages:"), langs.join(", "));
+    const templateBase = path.join(root, "businessops", "templates", "docs");
+    const outBase = path.join(root, "businessops", "docs");
+
+    const langs: Array<"en" | "pt-br"> =
+      languagePref === "EN" ? ["en"] : languagePref === "PT-BR" ? ["pt-br"] : ["en", "pt-br"];
 
     for (const lang of langs) {
-      const templateDir = path.join(templatesRoot, lang);
-      const outDir = path.join(outRoot, lang);
+      const tplDir = path.join(templateBase, lang);
+      const outDir = path.join(outBase, lang);
 
       await fs.ensureDir(outDir);
 
-      if (!(await fs.pathExists(templateDir))) {
-        console.log(chalk.yellow("Template folder missing:"), templateDir);
-        continue;
+      // copy templates first (if they exist)
+      if (await fs.pathExists(tplDir)) {
+        await fs.copy(tplDir, outDir, { overwrite: true });
       }
 
-      const files = (await fs.readdir(templateDir)).filter((f) => f.endsWith(".hbs"));
+      // ensure overview exists
+      const overviewPath = path.join(outDir, "overview.md");
+      const overviewTplExists = await fs.pathExists(overviewPath);
 
-      for (const file of files) {
-        const templatePath = path.join(templateDir, file);
-        const outFile = file.replace(/\.hbs$/, "");
-        const outPath = path.join(outDir, outFile);
+      const overviewTpl = overviewTplExists ? await fs.readFile(overviewPath, "utf8") : `# Overview\n\n<!-- BO:BEGIN GENERATED -->\n<!-- BO:END GENERATED -->\n`;
+      const generated = makeOverview(lang, company);
 
-        const templateContent = await fs.readFile(templatePath, "utf8");
-        const rendered = renderTemplate(templateContent, state);
+      const next = fillGeneratedBlock(overviewTpl, generated);
+      await fs.writeFile(overviewPath, next, "utf8");
 
-        if (opts.force || !(await fs.pathExists(outPath))) {
-          await fs.writeFile(outPath, rendered, "utf8");
-          console.log(chalk.green("Wrote:"), path.relative(root, outPath));
-        } else {
-          const current = await fs.readFile(outPath, "utf8");
-          const merged = mergeGeneratedBlock(current, rendered);
-          await fs.writeFile(outPath, merged, "utf8");
-          console.log(chalk.green("Updated (generated block):"), path.relative(root, outPath));
-        }
-      }
+      console.log(chalk.green("Generated:"), path.relative(root, overviewPath));
     }
 
-    // Optional: ensure diagrams folder exists
-    const diagramsDir = path.join(root, "businessops/diagrams");
-    await fs.ensureDir(diagramsDir);
-
-    console.log(chalk.green("\nGeneration complete."));
-    console.log(chalk.gray("Docs at:"), path.relative(root, outRoot));
+    console.log(chalk.green("\nDocs generated ✅"));
+    console.log(chalk.gray("Output folder:"), chalk.yellow("businessops/docs/"));
   });

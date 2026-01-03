@@ -1,52 +1,17 @@
-# Visão Geral da Empresa — (Empresa sem nome)
+# Visão Geral
 
 <!-- BO:BEGIN GENERATED -->
-## Resumo
-- Modo: **NEW**
-- País (modo): **BR**
-- Estágio: **EARLY**
-- Tamanho do time: **SMALL**
-- Descrição (1 linha): ****
+## Gamma Crucis
 
-## Mercado
-- Tipo de cliente: B2B
-- ICP: 
-- Dores do cliente: 
-- Posicionamento: 
-- Canais de aquisição: OUTBOUND_SALES
+**Resumo:** Importação e distribuição de produtos médicos no Brasil.
 
-## Modelo de Negócio
-- Modelo de receita: TRANSACTIONAL
-- Modelo de preço: NEGOTIATED
-- Descontos/negociação: UNKNOWN
-- Prazo de pagamento: 
+**Modo:** BR
+**Pack(s):** health-import
+**Estágio:** EARLY
 
-## Panorama Operacional
-- Tipo de entrega: INVENTORY
-- Complexidade: MEDIUM
-- Nível de terceirização: SOME
-- Serviços terceirizados: ACCOUNTING
-- Gargalo: 
+### Próximos passos recomendados
+- Rodar /structure no Copilot ou usar o Wizard do VS Code
+- Definir ICP e dores do cliente
+- Definir metas e KPIs de 90 dias
 
-## Risco e Compliance
-- Regulado: UNKNOWN
-- Principais riscos:
-
-
-## Objetivos (90 / 180 / 365)
-### 90 dias
-
-
-### 180 dias
-
-
-### 365 dias
-
-
-## Assunções e Incertezas
-- Se houver informações faltantes, trate como **[ASSUMPTION]** e valide durante a execução.
 <!-- BO:END GENERATED -->
-
-## Notas (editável)
-Use esta seção para contexto extra, links e esclarecimentos.
-O conteúdo aqui **não** será sobrescrito.

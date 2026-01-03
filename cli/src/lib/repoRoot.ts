@@ -1,39 +1,28 @@
-import fs from "fs";
 import path from "node:path";
+import fs from "node:fs";
 
 function exists(p: string) {
   try {
-    return fs.existsSync(p);
+    fs.statSync(p);
+    return true;
   } catch {
     return false;
   }
 }
 
-/**
- * Finds the repository root by walking up from startDir.
- * Heuristics:
- * - .git folder
- * - businessops folder
- * - README.md + cli folder
- */
 export function findRepoRoot(startDir: string = process.cwd()): string {
-  let current = path.resolve(startDir);
+  let dir = startDir;
 
-  while (true) {
-    const gitDir = path.join(current, ".git");
-    const businessopsDir = path.join(current, "businessops");
-    const readme = path.join(current, "README.md");
-    const cliDir = path.join(current, "cli");
+  for (let i = 0; i < 20; i++) {
+    const hasGit = exists(path.join(dir, ".git"));
+    const hasBusinessops = exists(path.join(dir, "businessops"));
 
-    if (exists(gitDir) || exists(businessopsDir) || (exists(readme) && exists(cliDir))) {
-      return current;
-    }
+    if (hasGit || hasBusinessops) return dir;
 
-    const parent = path.dirname(current);
-    if (parent === current) {
-      // reached filesystem root
-      return startDir;
-    }
-    current = parent;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
   }
+
+  return startDir; // fallback
 }

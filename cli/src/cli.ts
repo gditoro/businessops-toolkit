@@ -1,32 +1,24 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import chalk from "chalk";
-import { generateCommand } from "./commands/generate.js";
-import { initCommand } from "./commands/init.js";
-import { wizardCommand } from "./commands/wizard.js";
 
+import { initCommand } from "./commands/init.js";
+import { generateCommand } from "./commands/generate.js";
 
 const program = new Command();
 
 program
   .name("businessops")
-  .description("BusinessOps Toolkit CLI — wizard + doc generation for founders")
+  .description("BusinessOps Toolkit CLI — init + generate deterministic docs")
   .version("0.1.0");
 
 program.addCommand(initCommand);
 program.addCommand(generateCommand);
-program.addCommand(wizardCommand);
 
-program.addHelpText(
-  "after",
-  `
-Examples:
-  businessops init
-  businessops generate --state businessops/state/company.yaml
-`
-);
-
-program.parseAsync(process.argv).catch((err) => {
-  console.error(chalk.red("Error:"), err?.message ?? err);
+program.on("command:*", () => {
+  console.error(chalk.red("Unknown command:"), program.args.join(" "));
+  program.help();
   process.exit(1);
 });
+
+program.parse(process.argv);

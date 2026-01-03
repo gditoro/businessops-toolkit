@@ -1,32 +1,27 @@
 {
-  "name": "businessops",
+  "name": "businessops-cli",
   "version": "0.1.0",
-  "description": "BusinessOps Toolkit CLI (wizard + doc generator) for founders",
+  "private": true,
+  "type": "module",
   "bin": {
     "businessops": "dist/cli.js"
   },
-  "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "dev": "tsx src/cli.ts",
-    "start": "node dist/cli.js",
-    "lint": "eslint .",
-    "format": "prettier -w ."
+    "dev": "node --loader ts-node/esm src/cli.ts",
+    "build": "tsc -p .",
+    "start": "node dist/cli.js"
   },
   "dependencies": {
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
-    "execa": "^9.6.1",
     "fs-extra": "^11.2.0",
-    "handlebars": "^4.7.8",
-    "prompts": "^2.4.2",
-    "yaml": "^2.5.1"
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^22.10.0",
-    "@types/prompts": "^2.4.9",
-    "tsx": "^4.19.2",
+    "ts-node": "^10.9.2",
     "typescript": "^5.6.3"
   }
 }
