@@ -1,0 +1,13 @@
+{
+  "name": "businessops-toolkit",
+  "private": true,
+  "workspaces": [
+    "cli",
+    "extensions/businessops-vscode"
+  ],
+  "scripts": {
+    "bo:init": "npm run dev --prefix cli -- init",
+    "bo:generate": "npm run dev --prefix cli -- generate",
+    "ext:compile": "npm run compile --prefix extensions/businessops-vscode"
+  }
+}
