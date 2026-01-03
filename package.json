@@ -8,6 +8,9 @@
   "scripts": {
     "bo:init": "npm run dev --prefix cli -- init",
     "bo:generate": "npm run dev --prefix cli -- generate",
-    "ext:compile": "npm run compile --prefix extensions/businessops-vscode"
+    "bo:ext:compile": "npm run compile --prefix extensions/businessops-vscode",
+    "bo:ext:watch": "npm run watch --prefix extensions/businessops-vscode",
+    "bo:cli:build": "npm run build --prefix cli",
+    "bo:ext:build": "npm run compile --prefix extensions/businessops-vscode"
   }
 }

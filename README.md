@@ -49,13 +49,12 @@ Use it to:
 
 ---
 
-## Quick Start (non-technical)
+## Quickstart
 
-### 1) Install prerequisites
-- VS Code
-- GitHub Copilot (recommended)
-- Node.js (for the CLI)
+### CLI
 
-### 2) Initialize the workspace
 ```bash
-npx businessops init
+cd cli
+npm install
+npm run dev -- init
+npm run dev -- generate
