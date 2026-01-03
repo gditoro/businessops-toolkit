@@ -12,22 +12,18 @@ const DEFAULT_DIRS = [
   // Main toolkit folders
   "businessops/workflows",
   "businessops/state",
+  "businessops/commands",
   "businessops/templates/docs/en",
   "businessops/templates/docs/pt-br",
-  "businessops/templates/commands",
   "businessops/packs/industry-neutral",
   "businessops/packs/health-import",
   "businessops/reports",
-  "businessops/diagrams",
-
-  // Copilot command folder (Spec Kit style)
-  ".copilot/commands"
+  "businessops/diagrams"
 ];
 
 const DEFAULT_FILES: Array<{
   rel: string;
   content: string;
-  force?: boolean;
 }> = [
   {
     rel: "businessops/state/schema-version.yaml",
@@ -119,9 +115,10 @@ Canonical outputs:
 - businessops/docs/pt-br/*.md
 
 This repo uses a Spec Kit–style command system:
-- .copilot/commands/
+- businessops/commands/
 
-If the user types /intake, load .copilot/commands/intake.md and follow it strictly.
+If the user types /intake, load \`businessops/commands/intake.md\` and follow it strictly.
+If the user types \`@businessops /intake\`, treat as \`/intake\`.
 
 Key rules:
 1) Be practical. Avoid theory. Always produce actionable outputs.
@@ -132,6 +129,19 @@ Key rules:
 6) Ask max 3 clarification questions at a time.
 7) Update repo files; don’t keep important outputs only in chat.
 
+## Safe Mode (Copilot Chat Wizard) — DEFAULT & REQUIRED
+
+Por padrão, no Copilot Chat Wizard:
+- pergunte 1 pergunta por vez
+- ofereça opções curtas com valores exatos (para virar botões quando possível)
+- aceite resposta por texto como fallback
+- valide resposta antes de avançar
+- salve checkpoint (answers.yaml) após cada resposta
+
+## Generate Policy (Policy A)
+Antes de rodar /generate automaticamente, sempre peça permissão (YES/NO),
+a menos que o usuário tenha pedido explicitamente.
+
 Generated content must stay inside markers:
 <!-- BO:BEGIN GENERATED -->
 <!-- BO:END GENERATED -->
@@ -139,11 +149,7 @@ Generated content must stay inside markers:
   }
 ];
 
-async function writeFileIfMissing(
-  absPath: string,
-  content: string,
-  force: boolean
-) {
+async function writeFileIfMissing(absPath: string, content: string, force: boolean) {
   const exists = await fs.pathExists(absPath);
   if (!exists || force) {
     await fs.ensureDir(path.dirname(absPath));
@@ -153,39 +159,8 @@ async function writeFileIfMissing(
   return false;
 }
 
-async function copyCommandTemplatesToCopilot(
-  repoRoot: string,
-  force: boolean
-) {
-  const templatesDir = path.join(repoRoot, "businessops/templates/commands");
-  const outDir = path.join(repoRoot, ".copilot/commands");
-
-  await fs.ensureDir(outDir);
-
-  if (!(await fs.pathExists(templatesDir))) {
-    console.log(
-      chalk.yellow("Command templates not found at:"),
-      path.relative(repoRoot, templatesDir)
-    );
-    console.log(
-      chalk.gray("Tip: add command templates in businessops/templates/commands/")
-    );
-    return;
-  }
-
-  // Copy all markdown files (overwrite controlled by force)
-  await fs.copy(templatesDir, outDir, { overwrite: force, errorOnExist: false });
-
-  console.log(
-    chalk.green("Copied command prompts to:"),
-    path.relative(repoRoot, outDir)
-  );
-}
-
 export const initCommand = new Command("init")
-  .description(
-    "Initialize BusinessOps Toolkit folder structure + Copilot command prompts"
-  )
+  .description("Initialize BusinessOps Toolkit folder structure + default state files")
   .option("--force", "Overwrite existing files if needed", false)
   .action(async (opts) => {
     const repoRoot = findRepoRoot();
@@ -206,28 +181,16 @@ export const initCommand = new Command("init")
       }
     }
 
-    // Copy Spec Kit–style command prompts to .copilot/commands
-    await copyCommandTemplatesToCopilot(repoRoot, opts.force);
-
     console.log(chalk.green("\nDone ✅"));
 
     console.log(chalk.cyan("\nRecommended next step (AI-first):"));
-    console.log(
-      chalk.gray(
-        "Open GitHub Copilot Chat in VS Code and run the command below:"
-      )
-    );
-    console.log(chalk.yellow("\n  /intake\n"));
-    console.log(
-      chalk.gray(
-        "This will guide you through a wizard with AI suggestions and will update:"
-      )
-    );
-    console.log(chalk.gray("  - businessops/state/answers.yaml"));
-    console.log(chalk.gray("  - businessops/state/company.yaml"));
-    console.log(chalk.gray("  - businessops/docs/... (generated)"));
+    console.log(chalk.gray("Open GitHub Copilot Chat in VS Code and run:"));
+    console.log(chalk.yellow("\n  @businessops /intake\n"));
 
-    console.log(chalk.cyan("\nCLI workflow (optional):"));
+    console.log(chalk.gray("Command files are located at:"));
+    console.log(chalk.yellow("  businessops/commands/\n"));
+
+    console.log(chalk.cyan("CLI workflow (optional):"));
     console.log(chalk.gray("  businessops generate"));
     console.log(chalk.gray("  businessops wizard --terminal"));
   });

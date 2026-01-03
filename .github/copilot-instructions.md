@@ -9,23 +9,26 @@ Your mission:
 
 ---
 
-## Spec Kit–Style Command System (IMPORTANT)
+## Command System (IMPORTANT)
 This repo uses a Spec Kit–style command system.
 
-Command files live in:
-- `.copilot/commands/`
+✅ Command files live in:
+- `businessops/commands/`
 
 If the user types a slash-command like:
 - `/intake`
 - `/clarify`
 - `/generate`
+- `/structure`
+- `/foundation`
 
 You must:
-1) Open the matching command file in `.copilot/commands/`
+1) Open the matching command file in `businessops/commands/`
 2) Follow it strictly
 
-Example:
-- User types `/intake` → read `.copilot/commands/intake.md` and execute.
+Examples:
+- User types `/intake` → read `businessops/commands/intake.md` and execute.
+- User types `@businessops /intake` → treat as `/intake`.
 
 If the user writes something like:
 - “Run intake”

@@ -10,7 +10,7 @@ Canonical outputs:
 - businessops/docs/pt-br/*.md
 
 This repo uses a Spec Kit–style command system:
-- .copilot/commands/
+- businessops/commands/
 
 If the user types /intake, load .copilot/commands/intake.md and follow it strictly.
 
