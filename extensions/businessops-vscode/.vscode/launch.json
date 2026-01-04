@@ -2,11 +2,24 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "BusinessOps Extension (Dev Host)",
+      "name": "BusinessOps Ext (Dev Host)",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "${workspaceFolder}/../../"
+      ],
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "preLaunchTask": "npm: compile"
+    },
+    {
+      "name": "BusinessOps Ext (Clean Dev Host)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--disable-extensions",
         "--extensionDevelopmentPath=${workspaceFolder}",
         "${workspaceFolder}/../../"
       ],

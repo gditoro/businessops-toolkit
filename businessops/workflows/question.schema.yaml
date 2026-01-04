@@ -1,0 +1,24 @@
+question_schema:
+  id: string
+  text:
+    pt-br: string
+    en: string
+  type: enum | text | multiselect
+  options:
+    - value: string
+      label:
+        pt-br: string
+        en: string
+  placeholder:
+    pt-br: string
+    en: string
+  validation:
+    required: boolean
+    minLength: number
+    maxLength: number
+  save_to:
+    answers: dot.path
+    company: dot.path
+  tags: [string]
+  priority: number
+  created_by: string

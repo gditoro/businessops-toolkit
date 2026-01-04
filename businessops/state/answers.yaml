@@ -2,6 +2,8 @@ wizard:
   workflow_id: businessops_wizard
   version: 0.1
   mode: robust
+  pending_reset_prompt: true
+  awaiting_step: null
 answers:
   lifecycle_mode: EXISTING
   country_mode: BR

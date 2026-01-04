@@ -1,0 +1,119 @@
+workflow_id: intake_core
+version: 0.1
+mode: robust
+description:
+  pt-br: "Perguntas essenciais para iniciar o contexto da empresa (bootloader)."
+  en: "Essential questions to bootstrap company context."
+
+questions:
+  - id: lifecycle_mode
+    text:
+      pt-br: "A empresa é nova ou já existente?"
+      en: "Is the company new or existing?"
+    type: enum
+    options:
+      - value: NEW
+        label: { pt-br: "Nova", en: "New" }
+      - value: EXISTING
+        label: { pt-br: "Já opera", en: "Existing" }
+      - value: UNKNOWN
+        label: { pt-br: "Não sei", en: "Not sure" }
+    save_to:
+      answers: lifecycle_mode
+      company: company.lifecycle_mode
+    validation: { required: true }
+    tags: [core]
+    priority: 1000
+
+  - id: country_mode
+    text:
+      pt-br: "Qual o modo de país/regras?"
+      en: "Country/rules mode?"
+    type: enum
+    options:
+      - value: BR
+        label: { pt-br: "Brasil", en: "Brazil" }
+      - value: GLOBAL
+        label: { pt-br: "Global", en: "Global" }
+      - value: UNKNOWN
+        label: { pt-br: "Não sei", en: "Not sure" }
+    save_to:
+      answers: country_mode
+      company: meta.country_mode
+    validation: { required: true }
+    tags: [core]
+    priority: 990
+
+  - id: language_preference
+    text:
+      pt-br: "Qual idioma você quer para os documentos gerados?"
+      en: "What language do you want for generated docs?"
+    type: enum
+    options:
+      - value: BILINGUAL
+        label: { pt-br: "Bilíngue (PT-BR + EN)", en: "Bilingual (PT-BR + EN)" }
+      - value: PT-BR
+        label: { pt-br: "Português", en: "Portuguese" }
+      - value: EN
+        label: { pt-br: "Inglês", en: "English" }
+    save_to:
+      answers: language_preference
+      company: meta.language_preference
+    validation: { required: true }
+    tags: [core]
+    priority: 980
+
+  - id: industry_pack
+    text:
+      pt-br: "Qual pacote (indústria) ativar?"
+      en: "Which industry pack to activate?"
+    type: enum
+    options:
+      - value: industry-neutral
+        label: { pt-br: "Neutro (padrão)", en: "Neutral (default)" }
+      - value: health-import
+        label: { pt-br: "Health Import (importação de saúde)", en: "Health Import" }
+      - value: UNKNOWN
+        label: { pt-br: "Não sei", en: "Not sure" }
+    save_to:
+      answers: industry_pack
+      company: meta.packs
+    validation: { required: true }
+    tags: [core]
+    priority: 970
+
+  - id: company_name
+    text:
+      pt-br: "Qual é o nome da empresa?"
+      en: "What is the company name?"
+    type: text
+    placeholder:
+      pt-br: "Ex.: Gamma Crucis"
+      en: "e.g., Gamma Crucis"
+    options:
+      - value: SKIP
+        label: { pt-br: "Pular", en: "Skip" }
+    save_to:
+      answers: company_name
+      company: company.identity.name
+    validation: { required: false, maxLength: 120 }
+    tags: [core]
+    priority: 960
+
+  - id: one_liner
+    text:
+      pt-br: "Descreva a empresa em uma frase (one-liner)."
+      en: "Describe the company in one sentence (one-liner)."
+    type: text
+    placeholder:
+      pt-br: "Ex.: Importação e distribuição de materiais médicos descartáveis..."
+      en: "e.g., Importing and distributing disposable medical supplies..."
+    options:
+      - value: SKIP
+        label: { pt-br: "Pular", en: "Skip" }
+    save_to:
+      answers: one_liner
+      company: company.identity.one_liner
+    validation: { required: false, maxLength: 240 }
+    tags: [core]
+    priority: 950

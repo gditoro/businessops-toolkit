@@ -10,7 +10,6 @@
 **Estágio:** EARLY
 
 ### Próximos passos recomendados
-
 - Rodar /structure no Copilot ou usar o Wizard do VS Code
 - Definir ICP e dores do cliente
 - Definir metas e KPIs de 90 dias

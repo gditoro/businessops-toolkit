@@ -8,17 +8,22 @@
     "vscode": "^1.90.0"
   },
   "categories": [
-    "Productivity",
+    "Extension Packs",
     "Other"
   ],
   "activationEvents": [
-    "onCommand:businessops.openWizard",
-    "onCommand:businessops.runGenerate",
-    "onCommand:businessops.openDocs",
-    "onView:businessops.view"
+    "*"
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "chatParticipants": [
+      {
+        "id": "businessops",
+        "name": "BusinessOps",
+        "description": "BusinessOps Toolkit AI agent (intake, plan, diagnose)",
+        "isSticky": true
+      }
+    ],
     "commands": [
       {
         "command": "businessops.openWizard",

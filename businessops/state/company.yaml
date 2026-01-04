@@ -7,5 +7,6 @@ company:
     headcount_range: SMALL
 meta:
   country_mode: BR
-  language_preference: BILINGUAL
-  packs:   ["health-import"]
+  language_preference: PT-BR
+  packs:
+    - health-import
