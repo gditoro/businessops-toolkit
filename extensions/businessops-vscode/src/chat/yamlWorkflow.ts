@@ -1,8 +1,7 @@
 import * as path from "node:path";
 import { readYaml } from "../state/yaml";
 import { getRepoRoot } from "../state/paths";
-import { Question } from "./schema";
-import { validateQuestion } from "./schema";
+import { Question, validateQuestion } from "./schema";
 
 export type WorkflowFile = {
   workflow_id: string;
@@ -20,7 +19,6 @@ export async function loadCoreWorkflow(): Promise<WorkflowFile> {
     throw new Error(`Core workflow not found or invalid at: ${workflowPath}`);
   }
 
-  // Validate questions
   const valid: Question[] = [];
   for (const q of wf.questions) {
     const errs = validateQuestion(q);

@@ -5,14 +5,21 @@ export type WizardState = {
   version: number;
   mode: string;
 
-  // dynamic question queue
   dynamic_enabled?: boolean;
+
   queue?: Question[];
   asked?: string[];
+
   current_question_id?: string | null;
   awaiting_answer_for?: string | null;
 
   pending_reset_prompt?: boolean;
+
+  last_question?: Question | null;
+
+  // completion metadata (important for /intake resume/reset decision)
+  completed?: boolean;
+  completed_at?: string | null;
 };
 
 export function ensureWizard(answers: any): WizardState {
@@ -20,7 +27,7 @@ export function ensureWizard(answers: any): WizardState {
     answers.wizard = {
       workflow_id: "businessops_wizard",
       version: 0.1,
-      mode: "robust"
+      mode: "robust",
     };
   }
 
@@ -30,12 +37,15 @@ export function ensureWizard(answers: any): WizardState {
   if (w.dynamic_enabled === undefined) w.dynamic_enabled = true;
   if (w.current_question_id === undefined) w.current_question_id = null;
   if (w.awaiting_answer_for === undefined) w.awaiting_answer_for = null;
+  if (w.last_question === undefined) w.last_question = null;
+  if (w.completed === undefined) w.completed = false;
+  if (w.completed_at === undefined) w.completed_at = null;
 
   return w;
 }
 
 export function enqueueQuestions(wizard: WizardState, questions: Question[]) {
-  const existing = new Set((wizard.queue || []).map(q => q.id));
+  const existing = new Set((wizard.queue || []).map((q) => q.id));
   for (const q of questions) {
     if (!existing.has(q.id) && !wizard.asked?.includes(q.id)) {
       wizard.queue!.push(q);
@@ -44,7 +54,9 @@ export function enqueueQuestions(wizard: WizardState, questions: Question[]) {
   }
 
   // sort by priority (desc), then stable
-  wizard.queue!.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0) || a.id.localeCompare(b.id));
+  wizard.queue!.sort(
+    (a, b) => (b.priority ?? 0) - (a.priority ?? 0) || a.id.localeCompare(b.id)
+  );
 }
 
 export function popNextQuestion(wizard: WizardState): Question | null {

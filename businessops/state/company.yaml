@@ -2,11 +2,32 @@ company:
   lifecycle_mode: EXISTING
   identity:
     name: Gamma Crucis
-    one_liner: Importação e distribuição de produtos médicos no Brasil.
+    short_name: Gamma
+    one_liner: Importação e distribuição de materiais médicos descartáveis.
     stage: EARLY
-    headcount_range: SMALL
+    headcount_range: MICRO
+  contact:
+    owner: Giovanni
+    email: adm@gammacrucis.com
+  compliance:
+    anvisa_license_active: 'YES'
+    product_registration: REGISTRATION
+  ops:
+    outsourced_services:
+      - ACCOUNTING
+      - CUSTOMS
+      - WAREHOUSE
+    delivery_type: INVENTORY
 meta:
   country_mode: BR
   language_preference: PT-BR
+  industry: healthcare
+  compliance:
+    - anvisa
+  modules:
+    - docs
+    - workflows
+    - reports
+    - diagrams
   packs:
     - health-import

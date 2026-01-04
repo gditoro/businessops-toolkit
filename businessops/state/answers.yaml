@@ -2,14 +2,21 @@ wizard:
   workflow_id: businessops_wizard
   version: 0.1
   mode: robust
-  pending_reset_prompt: true
-  awaiting_step: null
-answers:
-  lifecycle_mode: EXISTING
-  country_mode: BR
-  language_preference: PT-BR
-  industry_pack: health-import
-  company_name: Gamma Crucis
-  one_liner: Importação e distribuição de produtos médicos no Brasil.
-  stage: EARLY
-  headcount_range: SMALL
+  dynamic_enabled: true
+  queue: []
+  asked:
+    - lifecycle_mode
+    - country_mode
+    - language_preference
+    - industry_pack
+    - company_name
+    - one_liner
+    - ops.outsourced_services
+    - ops.inventory_model
+  pending_reset_prompt: false
+  current_question_id: null
+  awaiting_answer_for: null
+  last_question: null
+  completed: true
+  completed_at: '2026-01-04'
+answers: {}
