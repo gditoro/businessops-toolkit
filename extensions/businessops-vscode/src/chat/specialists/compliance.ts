@@ -30,13 +30,17 @@ export function complianceSpecialist(ctx: any): Question[] {
   questions.push({
     id: "compliance.product_registration",
     text: {
-      "pt-br": "Os produtos exigem registro ou notificação na ANVISA? ([VERIFY])",
-      "en": "Do the products require registration or notification at ANVISA? ([VERIFY])"
+      "pt-br": "Os produtos exigem registro ou notificação na ANVISA? Marque tudo que se aplica. ([VERIFY])",
+      "en": "Do the products require registration or notification at ANVISA? Select all that apply. ([VERIFY])"
     },
-    type: "enum",
+    type: "multiselect",
     options: [
       { value: "REGISTRATION", label: { "pt-br": "Registro", "en": "Registration" } },
       { value: "NOTIFICATION", label: { "pt-br": "Notificação", "en": "Notification" } },
+      { value: "BOTH", label: { "pt-br": "Ambos (registro e notificação dependendo do produto)", "en": "Both (registration and notification depending on the product)" } },
+      { value: "NONE", label: { "pt-br": "Nenhum exige registro/notificação", "en": "None require registration/notification" } },
+      { value: "MIXED", label: { "pt-br": "Alguns exigem registro e outros notificação", "en": "Some require registration, others notification" } },
+      { value: "OTHER", label: { "pt-br": "Outro (especifique ao responder)", "en": "Other (specify in your reply)" } },
       { value: "UNKNOWN", label: { "pt-br": "Não sei", "en": "Not sure" } }
     ],
     save_to: { answers: "compliance.product_registration", company: "company.compliance.product_registration" },
