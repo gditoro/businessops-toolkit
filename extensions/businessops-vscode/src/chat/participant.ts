@@ -2,10 +2,13 @@ import * as vscode from "vscode";
 import { loadState } from "./intakeFlow";
 import { Question } from "./schema";
 import { ensureWizard, markAsked } from "./stateQueue";
-import { refreshWizardQueue, refreshWizardQueueAdvanced, getNextDynamicQuestion } from "./orchestrator";
+import { refreshWizardQueue, refreshWizardQueueAdvanced, getNextDynamicQuestion, buildContext } from "./orchestrator";
 import { saveDynamicAnswer } from "./saveDynamic";
 import { writeYaml } from "../state/yaml";
 import { WizardState } from "./types";
+import { loadCoreWorkflow } from "./yamlWorkflow";
+import { opsSpecialist } from "./specialists/ops";
+import { complianceSpecialist } from "./specialists/compliance";
 
 // -----------------------------
 // Helpers
@@ -64,6 +67,21 @@ function buildFollowup(label: string, prompt: string): vscode.ChatFollowup {
 function ensureHelpLog(wizard: any) {
   if (!wizard.help_events) wizard.help_events = [];
   return wizard.help_events;
+}
+
+function deleteAtPath(obj: any, dotPath: string) {
+  const parts = (dotPath || "").split(".").filter(Boolean);
+  if (parts.length === 0) return;
+
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const key = parts[i];
+    if (cur[key] == null || typeof cur[key] !== "object") return;
+    cur = cur[key];
+  }
+
+  const last = parts[parts.length - 1];
+  if (last in cur) delete cur[last];
 }
 
 // -----------------------------
@@ -132,12 +150,19 @@ export function registerBusinessOpsChat(context: vscode.ExtensionContext) {
         if (!ok) return;
 
         await askNext(stream, lang);
-        return;
-      }
+      return;
+    }
 
-      // ----------------------------------------------
-      // Commands
-      // ----------------------------------------------
+    // Backtrack: allow user to re-responder a pergunta anterior
+    const backText = lang === "pt-br" ? "VOLTAR" : "BACK";
+    if (!isCommand(text) && upper(text) === backText) {
+      await handleBack(stream, lang);
+      return;
+    }
+
+    // ----------------------------------------------
+    // Commands
+    // ----------------------------------------------
       if (text.startsWith("/intake")) {
         if (hasAnyAnswers(answers) || wizard.completed) {
           wizard.pending_reset_prompt = true;
@@ -246,7 +271,8 @@ export function registerBusinessOpsChat(context: vscode.ExtensionContext) {
           const opts = q.options.slice(0, 10).map(o =>
             buildFollowup(o.label[lang], `${o.value}`)
           );
-          return [...opts, ...actions, ...base];
+          const backLabel = lang === "pt-br" ? "VOLTAR (refazer)" : "BACK (re-answer)";
+          return [...opts, buildFollowup(backLabel, lang === "pt-br" ? "VOLTAR" : "BACK"), ...actions, ...base];
         }
 
         if (q.type === "multiselect" && q.options?.length) {
@@ -259,10 +285,12 @@ export function registerBusinessOpsChat(context: vscode.ExtensionContext) {
           if (first && second) suggestions.push(buildFollowup(`${first}, ${second}`, `${first}, ${second}`));
           if (first && second && third) suggestions.push(buildFollowup(`${first}, ${second}, ${third}`, `${first}, ${second}, ${third}`));
 
-          return [...suggestions, ...actions, ...base];
+          const backLabel = lang === "pt-br" ? "VOLTAR (refazer)" : "BACK (re-answer)";
+          return [...suggestions, buildFollowup(backLabel, lang === "pt-br" ? "VOLTAR" : "BACK"), ...actions, ...base];
         }
 
-        return [...actions, ...base];
+        const backLabel = lang === "pt-br" ? "VOLTAR (refazer)" : "BACK (re-answer)";
+        return [buildFollowup(backLabel, lang === "pt-br" ? "VOLTAR" : "BACK"), ...actions, ...base];
       }
 
       return base;
@@ -430,15 +458,54 @@ function suggestAnswer(q: Question, answers: any, lang: "pt-br" | "en") {
   if (q.id === "country_mode") return lang === "pt-br" ? "💡 Sugestão: **BR**" : "💡 Suggestion: **BR**";
   if (q.id === "language_preference") return lang === "pt-br" ? "💡 Sugestão: **BILINGUAL**" : "💡 Suggestion: **BILINGUAL**";
   if (q.id === "industry_pack") return lang === "pt-br" ? "💡 Sugestão: **health-import**" : "💡 Suggestion: **health-import**";
+  if (q.id === "compliance.product_registration") return lang === "pt-br" ? "💡 Sugestão: **MIXED**" : "💡 Suggestion: **MIXED**";
 
+  // fallback: propose a generic "custom" answer users can accept
   return lang === "pt-br"
-    ? "💡 Sugestão: escolha a opção que melhor descreve seu cenário. Se estiver em dúvida, use `UNKNOWN`."
-    : "💡 Suggestion: choose the option that best matches your scenario. If unsure, use `UNKNOWN`.";
+    ? "💡 Sugestão: **CUSTOM** — descreva com suas palavras."
+    : "💡 Suggestion: **CUSTOM** — describe it in your own words.";
 }
 
 // -----------------------------
 // Intake flow
 // -----------------------------
+
+async function handleBack(stream: any, lang: "pt-br" | "en") {
+  const { answers, company } = await loadState();
+  const wizard = ensureWizard(answers);
+
+  if (!wizard.asked || wizard.asked.length === 0) {
+    md(stream, lang === "pt-br" ? "Nenhuma pergunta anterior para voltar.\n\n" : "No previous question to go back to.\n\n");
+    return;
+  }
+
+  const lastId = wizard.asked.pop()!;
+  const q = await findQuestionById(lastId, answers, company);
+
+  if (!q) {
+    md(stream, lang === "pt-br" ? "Não encontrei a pergunta anterior.\n\n" : "Could not find the previous question.\n\n");
+    await saveWizardOnly(answers);
+    return;
+  }
+
+  // remove previous answer (only in answers.yaml scope)
+  if (q.save_to?.answers) {
+    deleteAtPath(answers.answers || {}, q.save_to.answers);
+  }
+
+  wizard.awaiting_answer_for = q.id;
+  wizard.current_question_id = q.id;
+  wizard.last_question = q;
+  wizard.completed = false;
+  wizard.completed_at = null;
+  wizard.awaiting_stage_choice = false;
+
+  await saveWizardOnly(answers);
+
+  const aiSuggestions = buildAutoSuggestions(q, answers, lang);
+  md(stream, lang === "pt-br" ? "↩️ Voltando para a pergunta anterior.\n\n" : "↩️ Going back to the previous question.\n\n");
+  await renderQuestion(stream, q, lang, aiSuggestions);
+}
 
 async function askNext(stream: any, lang: "pt-br" | "en") {
   const { answers, company } = await loadState();
@@ -490,9 +557,26 @@ function extractSuggestions(output: string): string[] {
   return suggestions;
 }
 
+}
+
+
+
 function buildAutoSuggestions(q: Question, answers: any, lang: "pt-br" | "en") {
   const suggestionText = suggestAnswer(q, answers, lang);
   return extractSuggestions(suggestionText);
+}
+
+async function findQuestionById(id: string, answers: any, company: any): Promise<Question | null> {
+  try {
+    const core = await loadCoreWorkflow();
+    const ctx = buildContext(answers, company);
+    const specialists = [...opsSpecialist(ctx), ...complianceSpecialist(ctx)];
+    const all = [...(core.questions || []), ...specialists];
+    return all.find(q => q.id === id) ?? null;
+  } catch (err) {
+    console.error("[businessops] findQuestionById failed", err);
+    return null;
+  }
 }
 
 async function renderQuestion(stream: any, q: Question, lang: "pt-br" | "en", aiSuggestions: string[] = []) {
@@ -570,15 +654,15 @@ async function handleQuestionAnswer(text: string, stream: any, lang: "pt-br" | "
     return false;
   }
 
-  const ok = validateAnswer(lastQ, text);
+  const aiSuggestions = buildAutoSuggestions(lastQ, answers, lang);
+  const ok = validateAnswer(lastQ, text, aiSuggestions);
   if (!ok.valid) {
     md(stream, lang === "pt-br" ? `❌ ${ok.messagePt}\n\n` : `❌ ${ok.messageEn}\n\n`);
-    const aiSuggestions = buildAutoSuggestions(lastQ, answers, lang);
     await renderQuestion(stream, lastQ, lang, aiSuggestions);
     return false;
   }
 
-  const normalized = normalizeAnswer(lastQ, text);
+  const normalized = normalizeAnswer(lastQ, text, aiSuggestions);
   await saveDynamicAnswer(lastQ, normalized);
 
   markAsked(wizard, lastQ.id);
@@ -595,7 +679,7 @@ async function handleQuestionAnswer(text: string, stream: any, lang: "pt-br" | "
   return true;
 }
 
-function validateAnswer(q: Question, raw: string): { valid: boolean; messagePt: string; messageEn: string } {
+function validateAnswer(q: Question, raw: string, aiSuggestions: string[] = []): { valid: boolean; messagePt: string; messageEn: string } {
   const v = norm(raw);
 
   if (q.type === "text") {
@@ -604,9 +688,10 @@ function validateAnswer(q: Question, raw: string): { valid: boolean; messagePt: 
   }
 
   const options = new Set((q.options || []).map(o => o.value.toLowerCase()));
+  const aiSet = new Set(aiSuggestions.map(s => s.toLowerCase()));
 
   if (q.type === "enum") {
-    if (!options.has(v.toLowerCase())) {
+    if (!options.has(v.toLowerCase()) && !aiSet.has(v.toLowerCase())) {
       return {
         valid: false,
         messagePt: `Resposta inválida. Use: ${(q.options || []).map(o => o.value).join(" / ")}`,
@@ -622,7 +707,7 @@ function validateAnswer(q: Question, raw: string): { valid: boolean; messagePt: 
       return { valid: false, messagePt: "Resposta vazia. Use valores separados por vírgula.", messageEn: "Empty response. Use comma-separated values." };
     }
     for (const p of parts) {
-      if (!options.has(p.toLowerCase())) {
+      if (!options.has(p.toLowerCase()) && !aiSet.has(p.toLowerCase())) {
         return {
           valid: false,
           messagePt: `Opção inválida: ${p}. Use: ${(q.options || []).map(o => o.value).join(", ")}`,
@@ -636,7 +721,7 @@ function validateAnswer(q: Question, raw: string): { valid: boolean; messagePt: 
   return { valid: false, messagePt: "Tipo inválido.", messageEn: "Invalid type." };
 }
 
-function normalizeAnswer(q: Question, raw: string): any {
+function normalizeAnswer(q: Question, raw: string, aiSuggestions: string[] = []): any {
   const v = norm(raw);
 
   if (q.type === "text") {
@@ -647,7 +732,12 @@ function normalizeAnswer(q: Question, raw: string): any {
   if (q.type === "enum") {
     const rawLower = v.toLowerCase();
     const opt = (q.options || []).find(o => o.value.toLowerCase() === rawLower);
-    return opt ? opt.value : v;
+    if (opt) return opt.value;
+
+    const ai = aiSuggestions.find(s => s.toLowerCase() === rawLower);
+    if (ai) return ai;
+
+    return v;
   }
 
   if (q.type === "multiselect") {
@@ -657,7 +747,18 @@ function normalizeAnswer(q: Question, raw: string): any {
     for (const part of parts) {
       const partLower = part.toLowerCase();
       const opt = (q.options || []).find(o => o.value.toLowerCase() === partLower);
-      normalized.push(opt ? opt.value : part);
+      if (opt) {
+        normalized.push(opt.value);
+        continue;
+      }
+
+      const ai = aiSuggestions.find(s => s.toLowerCase() === partLower);
+      if (ai) {
+        normalized.push(ai);
+        continue;
+      }
+
+      normalized.push(part);
     }
 
     return normalized;

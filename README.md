@@ -58,3 +58,8 @@ cd cli
 npm install
 npm run dev -- init
 npm run dev -- generate
+```
+
+## Roadmap
+
+Para acompanhar a evolução do BusinessOps Toolkit (v0.1 → v0.4), consulte o documento [`ROADMAP.md`](./ROADMAP.md).
