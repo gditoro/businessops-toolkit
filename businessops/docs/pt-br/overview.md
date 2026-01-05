@@ -3,7 +3,7 @@
 <!-- BO:BEGIN GENERATED -->
 ## Gamma Crucis
 
-**Resumo:** Importação e distribuição de produtos médicos no Brasil.
+**Resumo:** Importação e distribuição de materiais médicos descartáveis.
 
 **Modo:** BR
 **Pack(s):** health-import

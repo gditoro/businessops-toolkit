@@ -12,7 +12,8 @@
     "Other"
   ],
   "activationEvents": [
-    "*"
+    "*",
+    "onCommand:businessops.generateDocs"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -31,6 +32,10 @@
       },
       {
         "command": "businessops.runGenerate",
+        "title": "BusinessOps: Generate Docs"
+      },
+      {
+        "command": "businessops.generateDocs",
         "title": "BusinessOps: Generate Docs"
       },
       {

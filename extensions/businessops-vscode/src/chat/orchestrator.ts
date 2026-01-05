@@ -3,6 +3,11 @@ import { enqueueQuestions, ensureWizard, popNextQuestion } from "./stateQueue";
 import { opsSpecialist } from "./specialists/ops";
 import { complianceSpecialist } from "./specialists/compliance";
 import { loadCoreWorkflow } from "./yamlWorkflow";
+import { WizardState } from "./types";
+
+/**
+ * Contexto usado pelo orquestrador para decidir quais perguntas sugerir.
+ */
 
 export type OrchestratorContext = {
   lifecycle_mode?: string;
@@ -28,7 +33,9 @@ export function buildContext(answers: any, company: any): OrchestratorContext {
 
   const packs =
     company?.meta?.packs ||
-    (a.industry_pack && typeof a.industry_pack === "string" ? [a.industry_pack] : ["industry-neutral"]);
+    (a.industry_pack && typeof a.industry_pack === "string"
+      ? [a.industry_pack]
+      : ["industry-neutral"]);
 
   return {
     lifecycle_mode: a.lifecycle_mode,
@@ -40,12 +47,6 @@ export function buildContext(answers: any, company: any): OrchestratorContext {
   };
 }
 
-/**
- * Intake-level refresh (BASIC):
- * - Seeds core YAML workflow questions
- * - Adds a LIGHT ops specialist (outsourcing/inventory) as "basic context"
- * - Does NOT add compliance/anvisa here (advanced stage only)
- */
 export async function refreshWizardQueue(answers: any, company: any) {
   const wizard = ensureWizard(answers);
   if (!wizard.dynamic_enabled) return;
@@ -53,9 +54,7 @@ export async function refreshWizardQueue(answers: any, company: any) {
   const existingAnswers = answers?.answers || {};
   const isEmptyAnswers = Object.keys(existingAnswers).length === 0;
 
-  // ---------------------------
-  // 1) Seed CORE workflow YAML
-  // ---------------------------
+  // 1) Core YAML
   let core;
   try {
     core = await loadCoreWorkflow();
@@ -73,8 +72,6 @@ export async function refreshWizardQueue(answers: any, company: any) {
     const alreadyAnswered = getByPath(existingAnswers, q.save_to.answers) != null;
     const alreadyAsked = wizard.asked?.includes(q.id);
 
-    // Key safety:
-    // - if answers are empty, ignore "asked cache" to prevent ghost state
     if (!alreadyAnswered && (!alreadyAsked || isEmptyAnswers)) {
       coreToEnqueue.push(q);
     }
@@ -82,11 +79,8 @@ export async function refreshWizardQueue(answers: any, company: any) {
 
   enqueueQuestions(wizard, coreToEnqueue);
 
-  // ---------------------------
-  // 2) Light OPS specialist (still intake-level)
-  // ---------------------------
+  // 2) Light ops specialist
   const ctx = buildContext(answers, company);
-
   const opsQuestions = opsSpecialist(ctx);
 
   const validOps: Question[] = [];
@@ -98,11 +92,6 @@ export async function refreshWizardQueue(answers: any, company: any) {
   enqueueQuestions(wizard, validOps);
 }
 
-/**
- * Advanced stage refresh (future):
- * - Adds compliance specialist (ANVISA etc.)
- * - Used by /compliance or /deep-intake
- */
 export async function refreshWizardQueueAdvanced(answers: any, company: any) {
   const wizard = ensureWizard(answers);
   if (!wizard.dynamic_enabled) return;
