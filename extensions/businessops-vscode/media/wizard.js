@@ -6,6 +6,33 @@
 
   let state = window.BO_STATE || { answers: {} };
   let idx = 0;
+  let isSaving = false;
+
+  // Listen for messages from extension
+  window.addEventListener("message", (event) => {
+    const msg = event.data;
+    if (msg.type === "saveResult") {
+      isSaving = false;
+      if (msg.success) {
+        showNotification(t("Salvo com sucesso!", "Saved successfully!"), "success");
+      } else {
+        showNotification(t("Erro ao salvar: ", "Error saving: ") + (msg.error || "Unknown"), "error");
+      }
+      render();
+    }
+  });
+
+  function showNotification(message, type) {
+    const existing = document.querySelector(".notification");
+    if (existing) existing.remove();
+
+    const div = document.createElement("div");
+    div.className = `notification ${type}`;
+    div.textContent = message;
+    document.body.appendChild(div);
+
+    setTimeout(() => div.remove(), 3000);
+  }
 
   function t(pt, en) {
     return lang === "en" ? en : pt;
@@ -102,10 +129,16 @@
     };
 
     document.getElementById("save").onclick = () => {
+      if (isSaving) return;
+      isSaving = true;
+      render();
       vscode.postMessage({ type: "save", state });
     };
 
     document.getElementById("generate").onclick = () => {
+      if (isSaving) return;
+      isSaving = true;
+      render();
       vscode.postMessage({ type: "save", state });
       vscode.postMessage({ type: "generate" });
     };
@@ -133,10 +166,16 @@
     `;
 
     document.getElementById("save").onclick = () => {
+      if (isSaving) return;
+      isSaving = true;
+      renderDone();
       vscode.postMessage({ type: "save", state });
     };
 
     document.getElementById("generate").onclick = () => {
+      if (isSaving) return;
+      isSaving = true;
+      renderDone();
       vscode.postMessage({ type: "save", state });
       vscode.postMessage({ type: "generate" });
     };

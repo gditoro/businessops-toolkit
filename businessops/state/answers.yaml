@@ -1,22 +1,27 @@
+# BusinessOps Wizard State
+# This file tracks the intake wizard progress and stores answers
+# Version: 0.2
+
 wizard:
   workflow_id: businessops_wizard
-  version: 0.1
+  version: 0.2
   mode: robust
   dynamic_enabled: true
   queue: []
-  asked:
-    - lifecycle_mode
-    - country_mode
-    - language_preference
-    - industry_pack
-    - company_name
-    - one_liner
-    - ops.outsourced_services
-    - ops.inventory_model
+  asked: []
+  help_events: []
   pending_reset_prompt: false
   current_question_id: null
   awaiting_answer_for: null
   last_question: null
-  completed: true
-  completed_at: '2026-01-04'
+  awaiting_stage_choice: false
+  completed: false
+  completed_at: null
+  active_stage: CORE_INTAKE
+
+# Answers are stored here as key-value pairs
+# Example:
+#   lifecycle_mode: EXISTING
+#   country_mode: BR
+#   company_name: My Company
 answers: {}

@@ -14,6 +14,8 @@ questions:
     save_to:
       answers: lifecycle_mode
       company: company.lifecycle_mode
+    priority: 1000
+    tags: ["core", "required"]
     options:
       - value: NEW
         label:
@@ -31,21 +33,34 @@ questions:
   - id: country_mode
     type: enum
     text:
-      pt-br: "Qual o modo de país/regras?"
-      en: "Which country/rules mode?"
+      pt-br: "Qual o país principal de operação?"
+      en: "What is the main country of operation?"
     save_to:
       answers: country_mode
-      meta: country_mode
       company: meta.country_mode
+    priority: 990
+    tags: ["core", "required"]
     options:
       - value: BR
         label:
-          pt-br: "Brasil (tributação, ANVISA, importação, etc.)"
-          en: "Brazil (tax, ANVISA, import, etc.)"
+          pt-br: "Brasil"
+          en: "Brazil"
+      - value: US
+        label:
+          pt-br: "Estados Unidos"
+          en: "United States"
+      - value: EU
+        label:
+          pt-br: "Europa (UE)"
+          en: "Europe (EU)"
       - value: GLOBAL
         label:
           pt-br: "Global (múltiplos países / foco internacional)"
           en: "Global (multi-country / international focus)"
+      - value: OTHER
+        label:
+          pt-br: "Outro"
+          en: "Other"
       - value: UNKNOWN
         label:
           pt-br: "Não tenho certeza"
@@ -58,8 +73,9 @@ questions:
       en: "Which language do you want for generated documents?"
     save_to:
       answers: language_preference
-      meta: language_preference
       company: meta.language_preference
+    priority: 980
+    tags: ["core", "required"]
     options:
       - value: BILINGUAL
         label:
@@ -74,28 +90,97 @@ questions:
           pt-br: "Apenas EN"
           en: "English only"
 
+  - id: industry_sector
+    type: enum
+    text:
+      pt-br: "Qual é o setor/indústria principal da empresa?"
+      en: "What is the company's main industry/sector?"
+    save_to:
+      answers: industry_sector
+      company: meta.industry
+    priority: 970
+    tags: ["core", "required"]
+    options:
+      - value: HEALTHCARE
+        label:
+          pt-br: "Saúde / Médico / Farmacêutico"
+          en: "Healthcare / Medical / Pharmaceutical"
+      - value: TECHNOLOGY
+        label:
+          pt-br: "Tecnologia / Software / SaaS"
+          en: "Technology / Software / SaaS"
+      - value: RETAIL
+        label:
+          pt-br: "Varejo / E-commerce"
+          en: "Retail / E-commerce"
+      - value: MANUFACTURING
+        label:
+          pt-br: "Manufatura / Indústria"
+          en: "Manufacturing / Industry"
+      - value: SERVICES
+        label:
+          pt-br: "Serviços profissionais"
+          en: "Professional services"
+      - value: FINANCE
+        label:
+          pt-br: "Finanças / Fintech"
+          en: "Finance / Fintech"
+      - value: FOOD
+        label:
+          pt-br: "Alimentos / Bebidas"
+          en: "Food / Beverages"
+      - value: EDUCATION
+        label:
+          pt-br: "Educação"
+          en: "Education"
+      - value: LOGISTICS
+        label:
+          pt-br: "Logística / Transporte"
+          en: "Logistics / Transportation"
+      - value: CONSTRUCTION
+        label:
+          pt-br: "Construção / Imobiliário"
+          en: "Construction / Real Estate"
+      - value: AGRICULTURE
+        label:
+          pt-br: "Agronegócio"
+          en: "Agriculture / Agribusiness"
+      - value: OTHER
+        label:
+          pt-br: "Outro"
+          en: "Other"
+
   - id: industry_pack
     type: enum
     text:
-      pt-br: "Qual pacote (indústria) ativar?"
-      en: "Which industry pack should we activate?"
+      pt-br: "Qual pacote especializado ativar? (opcional)"
+      en: "Which specialized pack should we activate? (optional)"
     save_to:
       answers: industry_pack
-      meta: packs
       company: meta.packs
+    priority: 960
+    tags: ["core"]
     options:
       - value: industry-neutral
         label:
-          pt-br: "Neutro (padrão)"
-          en: "Neutral (default)"
+          pt-br: "Neutro (padrão — funciona para qualquer setor)"
+          en: "Neutral (default — works for any sector)"
       - value: health-import
         label:
           pt-br: "Health Import (importação e materiais médicos)"
           en: "Health Import (medical supplies import)"
-      - value: UNKNOWN
+      - value: saas-startup
         label:
-          pt-br: "Não tenho certeza"
-          en: "Not sure"
+          pt-br: "SaaS Startup (software como serviço)"
+          en: "SaaS Startup (software as a service)"
+      - value: ecommerce
+        label:
+          pt-br: "E-commerce (loja online)"
+          en: "E-commerce (online store)"
+      - value: consulting
+        label:
+          pt-br: "Consulting (consultoria/serviços)"
+          en: "Consulting (professional services)"
 
   - id: company_name
     type: text
@@ -103,11 +188,13 @@ questions:
       pt-br: "Qual é o nome da empresa?"
       en: "What is the company name?"
     placeholder:
-      pt-br: "Ex.: Gamma Crucis"
-      en: "e.g., Gamma Crucis"
+      pt-br: "Ex.: Minha Empresa Ltda"
+      en: "e.g., My Company Inc"
     save_to:
       answers: company_name
       company: company.identity.name
+    priority: 950
+    tags: ["core", "identity"]
     options:
       - value: SKIP
         label:
@@ -120,13 +207,127 @@ questions:
       pt-br: "Descreva a empresa em uma frase (one-liner)."
       en: "Describe the company in one sentence (one-liner)."
     placeholder:
-      pt-br: "Ex.: Importação e distribuição de materiais médicos descartáveis..."
-      en: "e.g., Importing and distributing disposable medical supplies..."
+      pt-br: "Ex.: Empresa de tecnologia que desenvolve soluções para..."
+      en: "e.g., Tech company developing solutions for..."
     save_to:
       answers: one_liner
       company: company.identity.one_liner
+    priority: 940
+    tags: ["core", "identity"]
     options:
       - value: SKIP
         label:
           pt-br: "Pular"
           en: "Skip"
+
+  - id: business_model
+    type: enum
+    text:
+      pt-br: "Qual o modelo de negócio principal?"
+      en: "What is the main business model?"
+    save_to:
+      answers: business_model
+      company: company.business_model
+    priority: 930
+    tags: ["core", "strategy"]
+    options:
+      - value: B2B
+        label:
+          pt-br: "B2B (vende para empresas)"
+          en: "B2B (sells to businesses)"
+      - value: B2C
+        label:
+          pt-br: "B2C (vende para consumidores)"
+          en: "B2C (sells to consumers)"
+      - value: B2B2C
+        label:
+          pt-br: "B2B2C (ambos via parceiros)"
+          en: "B2B2C (both via partners)"
+      - value: B2G
+        label:
+          pt-br: "B2G (vende para governo)"
+          en: "B2G (sells to government)"
+      - value: MARKETPLACE
+        label:
+          pt-br: "Marketplace (conecta compradores e vendedores)"
+          en: "Marketplace (connects buyers and sellers)"
+      - value: MIXED
+        label:
+          pt-br: "Misto"
+          en: "Mixed"
+      - value: UNKNOWN
+        label:
+          pt-br: "Não sei"
+          en: "Not sure"
+
+  - id: headcount_range
+    type: enum
+    text:
+      pt-br: "Quantos funcionários/colaboradores a empresa tem?"
+      en: "How many employees/collaborators does the company have?"
+    save_to:
+      answers: headcount_range
+      company: company.identity.headcount_range
+    priority: 920
+    tags: ["core", "size"]
+    options:
+      - value: SOLO
+        label:
+          pt-br: "Só eu (fundador solo)"
+          en: "Just me (solo founder)"
+      - value: MICRO
+        label:
+          pt-br: "1-9 pessoas"
+          en: "1-9 people"
+      - value: SMALL
+        label:
+          pt-br: "10-49 pessoas"
+          en: "10-49 people"
+      - value: MEDIUM
+        label:
+          pt-br: "50-249 pessoas"
+          en: "50-249 people"
+      - value: LARGE
+        label:
+          pt-br: "250+ pessoas"
+          en: "250+ people"
+      - value: UNKNOWN
+        label:
+          pt-br: "Não sei"
+          en: "Not sure"
+
+  - id: stage
+    type: enum
+    text:
+      pt-br: "Em qual estágio a empresa está?"
+      en: "What stage is the company at?"
+    save_to:
+      answers: stage
+      company: company.identity.stage
+    priority: 910
+    tags: ["core", "stage"]
+    options:
+      - value: IDEA
+        label:
+          pt-br: "Ideia (ainda planejando)"
+          en: "Idea (still planning)"
+      - value: MVP
+        label:
+          pt-br: "MVP (testando produto/serviço)"
+          en: "MVP (testing product/service)"
+      - value: EARLY
+        label:
+          pt-br: "Early (primeiros clientes)"
+          en: "Early (first customers)"
+      - value: GROWTH
+        label:
+          pt-br: "Growth (crescendo rápido)"
+          en: "Growth (scaling fast)"
+      - value: MATURE
+        label:
+          pt-br: "Madura (estável)"
+          en: "Mature (stable)"
+      - value: UNKNOWN
+        label:
+          pt-br: "Não sei"
+          en: "Not sure"

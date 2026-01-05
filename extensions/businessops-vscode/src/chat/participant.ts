@@ -1,4 +1,4 @@
-import * as vscode from "vscode";
+﻿import * as vscode from "vscode";
 import { loadState } from "./intakeFlow";
 import { Question } from "./schema";
 import { ensureWizard, markAsked } from "./stateQueue";
@@ -11,6 +11,7 @@ import {
 import { saveDynamicAnswer } from "./saveDynamic";
 import { writeYaml } from "../state/yaml";
 import { WizardState } from "./types";
+import { handleAiAction } from "./aiAssist";
 import { loadCoreWorkflow } from "./yamlWorkflow";
 import { opsSpecialist } from "./specialists/ops";
 import { complianceSpecialist } from "./specialists/compliance";
@@ -272,7 +273,7 @@ export function registerBusinessOpsChat(context: vscode.ExtensionContext) {
             ];
       }
 
-      // Awaiting a question → show options + AI actions
+      // Awaiting a question ? show options + AI actions
       if (wizard.awaiting_answer_for && wizard.last_question) {
         const q = wizard.last_question;
         const actions: vscode.ChatFollowup[] =
@@ -355,8 +356,8 @@ async function runRender(stream: any, lang: "pt-br" | "en") {
   md(
     stream,
     lang === "pt-br"
-      ? "🚀 Gerando docs agora...\n\n"
-      : "🚀 Generating docs now...\n\n"
+      ? "⏳ Gerando docs agora...\n\n"
+      : "⏳ Generating docs now...\n\n"
   );
 
   try {
@@ -393,8 +394,8 @@ async function askStageSelector(
   md(
     stream,
     lang === "pt-br"
-      ? "✅ Intake básico completo.\n\n**Quer aprofundar agora?**\n\n- `APROFUNDAR` — diagnóstico e especialistas (recomendado)\n- `GERAR_DOCS` — gerar docs básicas agora\n- `SAIR` — encerrar por aqui\n\n_Responda com o valor exato ou clique em uma opção._\n"
-      : "✅ Basic intake complete.\n\n**Do you want to deepen now?**\n\n- `DEEPEN` — specialists & diagnostic (recommended)\n- `GENERATE_DOCS` — generate basic docs now\n- `EXIT` — stop here\n\n_Reply with exact value or click an option._\n"
+      ? "✅ Intake básico completo.\n\n**Quer aprofundar agora?**\n\n- `APROFUNDAR` → diagnóstico e especialistas (recomendado)\n- `GERAR_DOCS` → gerar docs básicas agora\n- `SAIR` → encerrar por aqui\n\n_Responda com o valor exato ou clique em uma opção._\n"
+      : "✅ Basic intake complete.\n\n**Do you want to deepen now?**\n\n- `DEEPEN` → specialists & diagnostic (recommended)\n- `GENERATE_DOCS` → generate basic docs now\n- `EXIT` → stop here\n\n_Reply with exact value or click an option._\n"
   );
 }
 
@@ -424,14 +425,14 @@ async function handleStageChoice(
       return;
     }
     if (v === "APROFUNDAR") {
-      md(stream, "✅ Beleza — vamos aprofundar agora.\n\n");
+      md(stream, "👍 Beleza — vamos aprofundar agora.\n\n");
       await refreshWizardQueueAdvanced(answers, company);
       await saveWizardOnly(answers);
       await askNext(stream, lang);
       return;
     }
 
-    md(stream, "❌ Resposta inválida. Use: APROFUNDAR / GERAR_DOCS / SAIR\n\n");
+    md(stream, "⚠️ Resposta inválida. Use: APROFUNDAR / GERAR_DOCS / SAIR\n\n");
     await askStageSelector(stream, lang, answers);
     return;
   }
@@ -446,14 +447,14 @@ async function handleStageChoice(
     return;
   }
   if (v === "DEEPEN") {
-    md(stream, "✅ Great — starting deep intake now.\n\n");
+    md(stream, "👍 Great — starting deep intake now.\n\n");
     await refreshWizardQueueAdvanced(answers, company);
     await saveWizardOnly(answers);
     await askNext(stream, lang);
     return;
   }
 
-  md(stream, "❌ Invalid. Use: DEEPEN / GENERATE_DOCS / EXIT\n\n");
+  md(stream, "⚠️ Invalid. Use: DEEPEN / GENERATE_DOCS / EXIT\n\n");
   await askStageSelector(stream, lang, answers);
 }
 
@@ -474,17 +475,14 @@ async function handleAiAssistAction(
 
   const helpLog = ensureHelpLog(wizard);
 
-  // Here we do a lightweight “AI-ish” assist using templates.
-  // In future: you can integrate with Copilot models via chat tool calls.
-  let output = "";
+  // Use VS Code Language Model API with fallback to templates
+  const output = await handleAiAction(action, {
+    question: q,
+    lang,
+    answers: answers?.answers || {},
+    company,
+  });
 
-  if (action === "EXPLICAR") {
-    output = explainQuestion(q, lang);
-  } else if (action === "REFORMULAR") {
-    output = reframeQuestion(q, lang);
-  } else if (action === "SUGERIR") {
-    output = suggestAnswer(q, answers, lang);
-  }
 
   helpLog.push({
     question_id: q.id,
@@ -497,7 +495,7 @@ async function handleAiAssistAction(
 
   md(stream, output + "\n\n");
 
-  // Liste sugestões de IA junto das demais opções para facilitar a escolha.
+  // Liste sugest�es de IA junto das demais op��es para facilitar a escolha.
   const baseSuggestions = buildAutoSuggestions(q, answers, lang);
   const aiSuggestions =
     action === "SUGERIR"
@@ -510,28 +508,28 @@ async function handleAiAssistAction(
 function explainQuestion(q: Question, lang: "pt-br" | "en") {
   if (q.type === "text") {
     return lang === "pt-br"
-      ? `ℹ️ **Explicação**: responda com texto livre. Use \`SKIP\` se não quiser responder agora.`
-      : `ℹ️ **Explanation**: reply with free text. Use \`SKIP\` to skip for now.`;
+      ? `💡 **Explicação**: responda com texto livre. Use \`SKIP\` se não quiser responder agora.`
+      : `💡 **Explanation**: reply with free text. Use \`SKIP\` to skip for now.`;
   }
 
   if (q.type === "enum" || q.type === "multiselect") {
     const opts = (q.options || [])
-      .map((o) => `- \`${o.value}\` — ${o.label[lang]}`)
+      .map((o) => `- \`${o.value}\` → ${o.label[lang]}`)
       .join("\n");
     return lang === "pt-br"
-      ? `ℹ️ **Explicação**: escolha uma das opções abaixo.\n\n${opts}\n\nDica: você pode clicar em uma opção sugerida.`
-      : `ℹ️ **Explanation**: choose one of the options below.\n\n${opts}\n\nTip: you can click a suggested option.`;
+      ? `💡 **Explicação**: escolha uma das opções abaixo.\n\n${opts}\n\nDica: você pode clicar em uma opção sugerida.`
+      : `💡 **Explanation**: choose one of the options below.\n\n${opts}\n\nTip: you can click a suggested option.`;
   }
 
   return lang === "pt-br"
-    ? "ℹ️ Explicação indisponível."
-    : "ℹ️ Explanation unavailable.";
+    ? "💡 Explicação indisponível."
+    : "💡 Explanation unavailable.";
 }
 
 function reframeQuestion(q: Question, lang: "pt-br" | "en") {
   return lang === "pt-br"
-    ? `🧠 **Reformulação**: ${q.text["pt-br"]}\n\n_(Se quiser, posso adaptar a pergunta ao seu contexto com mais detalhes.)_`
-    : `🧠 **Reframed**: ${q.text["en"]}\n\n_(If you want, I can tailor the question further based on your context.)_`;
+    ? `🔄 **Reformulação**: ${q.text["pt-br"]}\n\n_(Se quiser, posso adaptar a pergunta ao seu contexto com mais detalhes.)_`
+    : `🔄 **Reframed**: ${q.text["en"]}\n\n_(If you want, I can tailor the question further based on your context.)_`;
 }
 
 function suggestAnswer(q: Question, answers: any, lang: "pt-br" | "en") {
@@ -709,7 +707,7 @@ async function renderQuestion(
     md(stream, placeholder);
 
     const sk = q.options?.find((o) => o.value === "SKIP");
-    if (sk) md(stream, `- \`${sk.value}\` — ${sk.label[lang]}\n`);
+    if (sk) md(stream, `- \`${sk.value}\` → ${sk.label[lang]}\n`);
 
     md(
       stream,
@@ -741,7 +739,7 @@ async function renderQuestion(
   );
 
   for (const opt of q.options || []) {
-    md(stream, `- \`${opt.value}\` — ${opt.label[lang]}\n`);
+    md(stream, `- \`${opt.value}\` → ${opt.label[lang]}\n`);
   }
 
   if (isEnum)
@@ -962,8 +960,8 @@ async function askResetContinueExit(stream: any, lang: "pt-br" | "en") {
   md(
     stream,
     lang === "pt-br"
-      ? `Encontrei respostas existentes. O que você quer fazer?\n\n- \`CONTINUAR\` — continuar\n- \`RESETAR\` — apagar e começar\n- \`SAIR\` — sair\n\n_Responda com o valor exato._\n\n⚠️ Dica: clique em uma opção sugerida.\n`
-      : `I found existing answers. What do you want to do?\n\n- \`CONTINUE\` — keep\n- \`RESET\` — clear\n- \`EXIT\` — exit\n\n_Reply with exact value._\n\n⚠️ Tip: click a suggestion.\n`
+      ? `Encontrei respostas existentes. O que você quer fazer?\n\n- \`CONTINUAR\` → continuar\n- \`RESETAR\` → apagar e começar\n- \`SAIR\` → sair\n\n_Responda com o valor exato._\n\n💡 Dica: clique em uma opção sugerida.\n`
+      : `I found existing answers. What do you want to do?\n\n- \`CONTINUE\` → keep\n- \`RESET\` → clear\n- \`EXIT\` → exit\n\n_Reply with exact value._\n\n💡 Tip: click a suggestion.\n`
   );
 }
 
@@ -1041,8 +1039,8 @@ async function handleResetChoice(
   md(
     stream,
     lang === "pt-br"
-      ? `❌ Resposta inválida. Use: **${CONTINUE} / ${RESET} / ${EXIT}**\n\n`
-      : `❌ Invalid. Use: **${CONTINUE} / ${RESET} / ${EXIT}**\n\n`
+      ? `⚠️ Resposta inválida. Use: **${CONTINUE} / ${RESET} / ${EXIT}**\n\n`
+      : `⚠️ Invalid. Use: **${CONTINUE} / ${RESET} / ${EXIT}**\n\n`
   );
 
   await askResetContinueExit(stream, lang);
@@ -1054,7 +1052,7 @@ async function handleResetChoice(
 
 function helpText(lang: "pt-br" | "en") {
   if (lang === "pt-br") {
-    return `Olá! Eu sou o **@BusinessOps**.\n\nComandos:\n- \`/intake\` — intake básico (1 pergunta por vez)\n- \`/render\` — gerar docs\n- \`/help\` — ajuda\n\nDurante perguntas você pode usar: \`EXPLICAR\`, \`REFORMULAR\`, \`SUGERIR\`.\n`;
+    return `Olá! Eu sou o **@BusinessOps**.\n\nComandos:\n- \`/intake\` → intake básico (1 pergunta por vez)\n- \`/render\` → gerar docs\n- \`/help\` → ajuda\n\nDurante perguntas você pode usar: \`EXPLICAR\`, \`REFORMULAR\`, \`SUGERIR\`.\n`;
   }
-  return `Hi! I'm **@BusinessOps**.\n\nCommands:\n- \`/intake\` — basic intake (one question at a time)\n- \`/render\` — generate docs\n- \`/help\` — help\n\nDuring questions you can use: \`EXPLICAR\`, \`REFORMULAR\`, \`SUGERIR\`.\n`;
+  return `Hi! I'm **@BusinessOps**.\n\nCommands:\n- \`/intake\` → basic intake (one question at a time)\n- \`/render\` → generate docs\n- \`/help\` → help\n\nDuring questions you can use: \`EXPLICAR\`, \`REFORMULAR\`, \`SUGERIR\`.\n`;
 }

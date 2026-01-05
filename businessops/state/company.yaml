@@ -1,33 +1,60 @@
+# BusinessOps Company Profile
+# This file stores the structured company information gathered during intake
+# Version: 0.2
+
 company:
-  lifecycle_mode: EXISTING
+  # Lifecycle stage of the company
+  lifecycle_mode: null
+  
+  # Company identity
   identity:
-    name: Gamma Crucis
-    short_name: Gamma
-    one_liner: Importação e distribuição de materiais médicos descartáveis.
-    stage: EARLY
-    headcount_range: MICRO
+    name: null
+    short_name: null
+    one_liner: null
+    stage: null
+    headcount_range: null
+  
+  # Business model
+  business_model: null
+  
+  # Contact information
   contact:
-    owner: Giovanni
-    email: adm@gammacrucis.com
-  compliance:
-    anvisa_license_active: 'YES'
-    product_registration: REGISTRATION
-  ops:
-    outsourced_services:
-      - ACCOUNTING
-      - CUSTOMS
-      - WAREHOUSE
-    delivery_type: INVENTORY
+    owner: null
+    email: null
+  
+  # Compliance and regulatory status
+  compliance: {}
+  
+  # Operations configuration
+  ops: {}
+  
+  # Finance configuration
+  finance: {}
+  
+  # Legal configuration
+  legal: {}
+
+# Metadata and configuration
 meta:
-  country_mode: BR
-  language_preference: PT-BR
-  industry: healthcare
-  compliance:
-    - anvisa
+  # Primary country of operation
+  country_mode: null
+  
+  # Language preference for generated documents
+  language_preference: BILINGUAL
+  
+  # Industry sector
+  industry: null
+  
+  # Active compliance frameworks (e.g., anvisa, gdpr, hipaa)
+  compliance: []
+  
+  # Active modules
   modules:
     - docs
     - workflows
     - reports
     - diagrams
+  
+  # Active industry packs
   packs:
-    - health-import
+    - industry-neutral

@@ -1,9 +1,9 @@
-import { Answers } from "./schema";
+import { Question } from "../chat/schema";
 
 export type StepOption = { value: string; label: string };
 export type Step =
   | {
-      id: keyof Answers;
+      id: string;
       type: "select";
       titlePt: string;
       titleEn: string;
@@ -11,7 +11,7 @@ export type Step =
       required?: boolean;
     }
   | {
-      id: keyof Answers;
+      id: string;
       type: "text";
       titlePt: string;
       titleEn: string;
@@ -20,6 +20,40 @@ export type Step =
       required?: boolean;
     };
 
+/**
+ * Convert a Question from YAML schema to webview Step format
+ */
+export function questionToStep(q: Question): Step {
+  if (q.type === "text") {
+    return {
+      id: q.id,
+      type: "text",
+      titlePt: q.text["pt-br"],
+      titleEn: q.text["en"],
+      placeholderPt: q.placeholder?.["pt-br"],
+      placeholderEn: q.placeholder?.["en"],
+      required: q.validation?.required ?? false
+    };
+  }
+
+  // enum or multiselect -> select
+  return {
+    id: q.id,
+    type: "select",
+    titlePt: q.text["pt-br"],
+    titleEn: q.text["en"],
+    options: (q.options || []).map(o => ({
+      value: o.value,
+      label: `${o.value} — ${o.label["pt-br"]}`
+    })),
+    required: q.validation?.required ?? true
+  };
+}
+
+/**
+ * Fallback steps when YAML can't be loaded (used by WizardPanel)
+ * These match the core intake.yaml structure
+ */
 export const STEPS: Step[] = [
   {
     id: "lifecycle_mode",

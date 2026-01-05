@@ -12,8 +12,11 @@
     "Other"
   ],
   "activationEvents": [
-    "*",
-    "onCommand:businessops.generateDocs"
+    "onCommand:businessops.openWizard",
+    "onCommand:businessops.runGenerate",
+    "onCommand:businessops.generateDocs",
+    "onCommand:businessops.openDocs",
+    "onChatParticipant:businessops"
   ],
   "main": "./dist/extension.js",
   "contributes": {

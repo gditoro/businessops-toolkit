@@ -1,24 +1,80 @@
+# BusinessOps Question Schema
+# Version: 0.2
+# This schema defines the structure for all intake questions
+
 question_schema:
-  id: string
+  # Required fields
+  id: string                    # Unique identifier (e.g., "company_name", "compliance.anvisa_license")
   text:
-    pt-br: string
-    en: string
+    pt-br: string               # Question text in Portuguese
+    en: string                  # Question text in English
   type: enum | text | multiselect
-  options:
-    - value: string
+  save_to:
+    answers: dot.path           # Path in answers.yaml (e.g., "lifecycle_mode")
+    company: dot.path           # Optional: path in company.yaml (e.g., "company.identity.name")
+  
+  # Optional fields
+  options:                      # Required for enum/multiselect types
+    - value: string             # Canonical value to store
       label:
         pt-br: string
         en: string
-  placeholder:
+  
+  placeholder:                  # For text type questions
     pt-br: string
     en: string
+  
   validation:
-    required: boolean
-    minLength: number
-    maxLength: number
-  save_to:
-    answers: dot.path
-    company: dot.path
-  tags: [string]
-  priority: number
-  created_by: string
+    required: boolean           # Default: false
+    minLength: number           # For text type
+    maxLength: number           # For text type
+  
+  tags: [string]                # Categorization (e.g., ["core", "compliance", "br"])
+  priority: number              # Higher = asked sooner (1000 = first, 0 = last)
+  created_by: string            # Source (e.g., "core", "specialist:ops", "specialist:compliance")
+  
+  # Conditional logic (optional)
+  condition:
+    field: dot.path             # Field to check in answers
+    equals: string              # Field must equal this value
+    not_equals: string          # Field must not equal this value
+    in: [string]                # Field must be one of these values
+    not_in: [string]            # Field must not be one of these values
+    exists: boolean             # Field must exist (true) or not exist (false)
+
+# Example questions:
+examples:
+  - id: lifecycle_mode
+    text:
+      pt-br: "A empresa é nova ou já existente?"
+      en: "Is the company new or already operating?"
+    type: enum
+    save_to:
+      answers: lifecycle_mode
+      company: company.lifecycle_mode
+    priority: 1000
+    tags: ["core", "required"]
+    options:
+      - value: NEW
+        label:
+          pt-br: "Nova"
+          en: "New"
+      - value: EXISTING
+        label:
+          pt-br: "Existente"
+          en: "Existing"
+  
+  - id: compliance.anvisa_license
+    text:
+      pt-br: "Possui licença ANVISA?"
+      en: "Do you have an ANVISA license?"
+    type: enum
+    save_to:
+      answers: compliance.anvisa_license
+      company: company.compliance.anvisa_license
+    priority: 260
+    tags: ["compliance", "health", "br"]
+    created_by: specialist:compliance
+    condition:
+      field: country_mode
+      equals: BR

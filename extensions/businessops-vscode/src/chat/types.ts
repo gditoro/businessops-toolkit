@@ -11,11 +11,13 @@ import { Question } from "./schema";
  *
  * Ele é persistido em answers.yaml em:
  *   wizard: ...
+ * 
+ * Version: 0.2 - Now supports any company/industry
  */
 export type WizardState = {
   // Identidade do workflow
   workflow_id: string; // ex: "businessops_wizard"
-  version: number;     // ex: 0.1
+  version: number;     // ex: 0.2
   mode: "robust" | "light" | "minimal" | string;
 
   // Controle de fluxo
@@ -47,6 +49,7 @@ export type WizardState = {
   /**
    * Fila de perguntas. Cada item é uma Question completa.
    * A fila é recalculada/atualizada pelo orchestrator.
+   * Questions are sorted by priority (higher = first).
    */
   queue: Question[];
 
@@ -90,10 +93,18 @@ export type WizardState = {
   }>;
 
   /**
-   * Campo opcional para evolução futura:
-   * - permite marcar "sub-flows" ativos, como deep compliance, ops etc.
+   * Current active stage in the intake flow.
+   * Tracks progress through different phases.
    */
-  active_stage?: "CORE_INTAKE" | "STAGE_SELECTOR" | "DEEP_INTAKE" | "COMPLIANCE" | "OPS" | "FINANCE" | string;
+  active_stage?: 
+    | "CORE_INTAKE"      // Initial core questions
+    | "STAGE_SELECTOR"   // Choosing next phase
+    | "DEEP_INTAKE"      // Deep dive with specialists
+    | "COMPLIANCE"       // Compliance-focused questions
+    | "OPS"              // Operations-focused questions
+    | "FINANCE"          // Finance-focused questions
+    | "LEGAL"            // Legal-focused questions
+    | string;            // Future extensibility
 };
 
 /**
@@ -102,4 +113,37 @@ export type WizardState = {
 export type AnswersStateFile = {
   wizard?: WizardState;
   answers?: Record<string, any>;
+};
+
+/**
+ * Conveniência: tipo do arquivo company.yaml
+ */
+export type CompanyStateFile = {
+  company?: {
+    lifecycle_mode?: string;
+    identity?: {
+      name?: string;
+      short_name?: string;
+      one_liner?: string;
+      stage?: string;
+      headcount_range?: string;
+    };
+    business_model?: string;
+    contact?: {
+      owner?: string;
+      email?: string;
+    };
+    compliance?: Record<string, any>;
+    ops?: Record<string, any>;
+    finance?: Record<string, any>;
+    legal?: Record<string, any>;
+  };
+  meta?: {
+    country_mode?: string;
+    language_preference?: string;
+    industry?: string;
+    compliance?: string[];
+    modules?: string[];
+    packs?: string[];
+  };
 };

@@ -1,11 +1,15 @@
 import { Question } from "./schema";
 import type { WizardState } from "./types";
 
+/**
+ * Ensures the wizard state exists in answers with all required fields.
+ * Creates default state if missing, and fills in any missing fields.
+ */
 export function ensureWizard(answers: any): WizardState {
   if (!answers.wizard) {
     answers.wizard = {
       workflow_id: "businessops_wizard",
-      version: 0.1,
+      version: 0.2,
       mode: "robust",
 
       // core flags
@@ -31,16 +35,16 @@ export function ensureWizard(answers: any): WizardState {
       // AI assist logs
       help_events: [],
 
-      // optional future proofing
+      // current stage
       active_stage: "CORE_INTAKE",
     };
   }
 
   const w = answers.wizard as WizardState;
 
-  // defensive defaults (in case YAML has partial wizard object)
+  // Defensive defaults (in case YAML has partial wizard object)
   if (!w.workflow_id) w.workflow_id = "businessops_wizard";
-  if (w.version === undefined) w.version = 0.1;
+  if (w.version === undefined) w.version = 0.2;
   if (!w.mode) w.mode = "robust";
 
   if (w.dynamic_enabled === undefined) w.dynamic_enabled = true;
