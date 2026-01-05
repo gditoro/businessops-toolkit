@@ -557,6 +557,10 @@ function extractSuggestions(output: string): string[] {
   return suggestions;
 }
 
+}
+
+
+
 function buildAutoSuggestions(q: Question, answers: any, lang: "pt-br" | "en") {
   const suggestionText = suggestAnswer(q, answers, lang);
   return extractSuggestions(suggestionText);
