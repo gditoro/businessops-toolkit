@@ -391,7 +391,15 @@ async function handleAiAssistAction(action: "EXPLICAR" | "REFORMULAR" | "SUGERIR
   await saveWizardOnly(answers);
 
   md(stream, output + "\n\n");
-  await renderQuestion(stream, q, lang);
+
+  // Liste sugestões de IA junto das demais opções para facilitar a escolha.
+  const baseSuggestions = buildAutoSuggestions(q, answers, lang);
+  const aiSuggestions =
+    action === "SUGERIR"
+      ? Array.from(new Set([...baseSuggestions, ...extractSuggestions(output)]))
+      : baseSuggestions;
+
+  await renderQuestion(stream, q, lang, aiSuggestions);
 }
 
 function explainQuestion(q: Question, lang: "pt-br" | "en") {
@@ -456,10 +464,38 @@ async function askNext(stream: any, lang: "pt-br" | "en") {
   wizard.last_question = q;
 
   await saveWizardOnly(answers);
-  await renderQuestion(stream, q, lang);
+  const aiSuggestions = buildAutoSuggestions(q, answers, lang);
+  await renderQuestion(stream, q, lang, aiSuggestions);
 }
 
-async function renderQuestion(stream: any, q: Question, lang: "pt-br" | "en") {
+function extractSuggestions(output: string): string[] {
+  const boldMatches = Array.from(output.matchAll(/\*\*([^*]+)\*\*/g)).map(m => m[1].trim()).filter(Boolean);
+  if (boldMatches.length > 0) return boldMatches;
+
+  const lines = output.split("\n").map(l => l.trim()).filter(Boolean);
+  const suggestions: string[] = [];
+
+  for (const line of lines) {
+    const cleaned = line.replace(/^[-•]\s*/, "");
+    if (/sugest/i.test(cleaned) || /suggest/i.test(cleaned)) {
+      const parts = cleaned.split(":");
+      if (parts.length > 1) {
+        suggestions.push(parts.slice(1).join(":").trim());
+        continue;
+      }
+    }
+    suggestions.push(cleaned);
+  }
+
+  return suggestions;
+}
+
+function buildAutoSuggestions(q: Question, answers: any, lang: "pt-br" | "en") {
+  const suggestionText = suggestAnswer(q, answers, lang);
+  return extractSuggestions(suggestionText);
+}
+
+async function renderQuestion(stream: any, q: Question, lang: "pt-br" | "en", aiSuggestions: string[] = []) {
   md(stream, `### ${q.text[lang]}\n`);
 
   const isText = q.type === "text";
@@ -475,6 +511,19 @@ async function renderQuestion(stream: any, q: Question, lang: "pt-br" | "en") {
 
     md(stream, lang === "pt-br" ? "\n_Responda com texto (ou `SKIP`)._\n" : "\n_Reply with text (or `SKIP`)._\n");
     return;
+  }
+
+  if (aiSuggestions.length > 0) {
+    md(
+      stream,
+      lang === "pt-br"
+        ? "_Sugestões da IA (você pode escolher qualquer uma ou outra opção):_\n"
+        : "_AI suggestions (you can pick any of these or another option):_\n"
+    );
+    for (const s of aiSuggestions) {
+      md(stream, `- ${s}\n`);
+    }
+    md(stream, "\n");
   }
 
   md(stream, lang === "pt-br" ? "_Clique numa opção ou responda com o valor exato._\n\n" : "_Click an option or reply with the exact value._\n\n");
@@ -524,7 +573,8 @@ async function handleQuestionAnswer(text: string, stream: any, lang: "pt-br" | "
   const ok = validateAnswer(lastQ, text);
   if (!ok.valid) {
     md(stream, lang === "pt-br" ? `❌ ${ok.messagePt}\n\n` : `❌ ${ok.messageEn}\n\n`);
-    await renderQuestion(stream, lastQ, lang);
+    const aiSuggestions = buildAutoSuggestions(lastQ, answers, lang);
+    await renderQuestion(stream, lastQ, lang, aiSuggestions);
     return false;
   }
 
