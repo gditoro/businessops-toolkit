@@ -12,27 +12,27 @@ question_schema:
   save_to:
     answers: dot.path           # Path in answers.yaml (e.g., "lifecycle_mode")
     company: dot.path           # Optional: path in company.yaml (e.g., "company.identity.name")
-  
+
   # Optional fields
   options:                      # Required for enum/multiselect types
     - value: string             # Canonical value to store
       label:
         pt-br: string
         en: string
-  
+
   placeholder:                  # For text type questions
     pt-br: string
     en: string
-  
+
   validation:
     required: boolean           # Default: false
     minLength: number           # For text type
     maxLength: number           # For text type
-  
+
   tags: [string]                # Categorization (e.g., ["core", "compliance", "br"])
   priority: number              # Higher = asked sooner (1000 = first, 0 = last)
   created_by: string            # Source (e.g., "core", "specialist:ops", "specialist:compliance")
-  
+
   # Conditional logic (optional)
   condition:
     field: dot.path             # Field to check in answers
@@ -63,7 +63,7 @@ examples:
         label:
           pt-br: "Existente"
           en: "Existing"
-  
+
   - id: compliance.anvisa_license
     text:
       pt-br: "Possui licença ANVISA?"

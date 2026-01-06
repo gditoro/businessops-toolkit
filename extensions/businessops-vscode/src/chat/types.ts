@@ -11,7 +11,7 @@ import { Question } from "./schema";
  *
  * Ele é persistido em answers.yaml em:
  *   wizard: ...
- * 
+ *
  * Version: 0.2 - Now supports any company/industry
  */
 export type WizardState = {
@@ -96,7 +96,7 @@ export type WizardState = {
    * Current active stage in the intake flow.
    * Tracks progress through different phases.
    */
-  active_stage?: 
+  active_stage?:
     | "CORE_INTAKE"      // Initial core questions
     | "STAGE_SELECTOR"   // Choosing next phase
     | "DEEP_INTAKE"      // Deep dive with specialists

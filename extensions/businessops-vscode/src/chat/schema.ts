@@ -15,7 +15,7 @@ export type QuestionSaveTo = {
 /**
  * Condition for conditional questions.
  * Allows questions to be shown only when certain conditions are met.
- * 
+ *
  * Examples:
  * - { field: "country_mode", equals: "BR" }
  * - { field: "industry_sector", in: ["HEALTHCARE", "FOOD"] }

@@ -3,11 +3,11 @@
 <!-- BO:BEGIN GENERATED -->
 ## Gamma Crucis
 
-**Resumo:** Importação e distribuição de materiais médicos descartáveis.
+**Resumo:** A Gamma Crucis é uma empresa brasileira especializada na importação e distribuição de materiais médicos descartáveis.
 
 **Modo:** BR
 **Pack(s):** health-import
-**Estágio:** EARLY
+**Estágio:** GROWTH
 
 ### Próximos passos recomendados
 - Rodar /structure no Copilot ou usar o Wizard do VS Code

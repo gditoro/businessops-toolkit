@@ -21,7 +21,7 @@ export type OrchestratorContext = {
   business_model?: string;
   headcount_range?: string;
   stage?: string;
-  
+
   // Full state references
   answers?: any;
   company?: any;
@@ -63,7 +63,7 @@ export function buildContext(answers: any, company: any): OrchestratorContext {
     business_model: a.business_model || companyInfo.business_model,
     headcount_range: a.headcount_range || companyInfo?.identity?.headcount_range,
     stage: a.stage || companyInfo?.identity?.stage,
-    
+
     // Full references
     answers,
     company
@@ -108,7 +108,7 @@ export async function refreshWizardQueue(answers: any, company: any) {
 
   // 2) Build context and get ops specialist questions
   const ctx = buildContext(answers, company);
-  
+
   // Ops specialist provides universal questions
   const opsQuestions = opsSpecialist(ctx);
   const validOps: Question[] = [];
@@ -129,7 +129,7 @@ export async function refreshWizardQueueAdvanced(answers: any, company: any) {
   if (!wizard.dynamic_enabled) return;
 
   const ctx = buildContext(answers, company);
-  
+
   // Collect questions from all advanced specialists
   const allQuestions: Question[] = [
     ...complianceSpecialist(ctx),
@@ -144,7 +144,7 @@ export async function refreshWizardQueueAdvanced(answers: any, company: any) {
   }
 
   enqueueQuestions(wizard, valid);
-  
+
   // Update active stage
   wizard.active_stage = "DEEP_INTAKE";
 }
