@@ -91,6 +91,20 @@ function deleteAtPath(obj: any, dotPath: string) {
   if (last in cur) delete cur[last];
 }
 
+function getProgressInfo(wizard: WizardState, answers: any): { asked: number; total: number; percent: number } {
+  const askedCount = wizard.asked?.length || 0;
+  const queueCount = wizard.queue?.length || 0;
+  const total = askedCount + queueCount;
+  const percent = total > 0 ? Math.round((askedCount / total) * 100) : 0;
+  return { asked: askedCount, total, percent };
+}
+
+function renderProgressBar(percent: number, width: number = 20): string {
+  const filled = Math.round((percent / 100) * width);
+  const empty = width - filled;
+  return `[${"█".repeat(filled)}${"░".repeat(empty)}] ${percent}%`;
+}
+
 // -----------------------------
 // Chat Participant Registration
 // -----------------------------
@@ -170,8 +184,30 @@ export function registerBusinessOpsChat(context: vscode.ExtensionContext) {
 
       // Backtrack: allow user to re-responder a pergunta anterior
       const backText = lang === "pt-br" ? "VOLTAR" : "BACK";
+      const skipText = lang === "pt-br" ? "PULAR" : "SKIP";
+      const restartText = lang === "pt-br" ? "RECOMEÇAR" : "RESTART";
+      const statusText = lang === "pt-br" ? "STATUS" : "STATUS";
+
       if (!isCommand(text) && upper(text) === backText) {
         await handleBack(stream, lang);
+        return;
+      }
+
+      // Skip current question
+      if (!isCommand(text) && upper(text) === skipText && wizard.awaiting_answer_for) {
+        await handleSkip(stream, lang);
+        return;
+      }
+
+      // Restart from beginning
+      if (!isCommand(text) && upper(text) === restartText) {
+        await handleRestart(stream, lang, answers);
+        return;
+      }
+
+      // Show status/progress
+      if (!isCommand(text) && upper(text) === statusText) {
+        await showStatus(stream, lang);
         return;
       }
 
@@ -227,31 +263,42 @@ export function registerBusinessOpsChat(context: vscode.ExtensionContext) {
       const lang = getLang(company);
       const wizard = ensureWizard(answers);
 
+      // Navigation actions available in most states
+      const navActions: vscode.ChatFollowup[] = lang === "pt-br"
+        ? [
+            buildFollowup("📊 Ver Status", "STATUS"),
+            buildFollowup("🔄 Recomeçar", "RECOMEÇAR"),
+          ]
+        : [
+            buildFollowup("📊 View Status", "STATUS"),
+            buildFollowup("🔄 Restart", "RESTART"),
+          ];
+
       const base: vscode.ChatFollowup[] = [
         buildFollowup(
-          lang === "pt-br" ? "Iniciar /intake" : "Start /intake",
+          lang === "pt-br" ? "▶️ Iniciar /intake" : "▶️ Start /intake",
           `/intake`
         ),
         buildFollowup(
-          lang === "pt-br" ? "Gerar docs" : "Generate docs",
+          lang === "pt-br" ? "📄 Gerar docs" : "📄 Generate docs",
           `/render`
         ),
-        buildFollowup(lang === "pt-br" ? "Ajuda" : "Help", `/help`),
+        buildFollowup(lang === "pt-br" ? "❓ Ajuda" : "❓ Help", `/help`),
       ];
 
       // Reset prompt
       if (wizard.pending_reset_prompt) {
         return lang === "pt-br"
           ? [
-              buildFollowup("CONTINUAR", "CONTINUAR"),
-              buildFollowup("RESETAR", "RESETAR"),
-              buildFollowup("SAIR", "SAIR"),
+              buildFollowup("▶️ CONTINUAR", "CONTINUAR"),
+              buildFollowup("🔄 RESETAR", "RESETAR"),
+              buildFollowup("🚪 SAIR", "SAIR"),
               ...base,
             ]
           : [
-              buildFollowup("CONTINUE", "CONTINUE"),
-              buildFollowup("RESET", "RESET"),
-              buildFollowup("EXIT", "EXIT"),
+              buildFollowup("▶️ CONTINUE", "CONTINUE"),
+              buildFollowup("🔄 RESET", "RESET"),
+              buildFollowup("🚪 EXIT", "EXIT"),
               ...base,
             ];
       }
@@ -260,45 +307,71 @@ export function registerBusinessOpsChat(context: vscode.ExtensionContext) {
       if (wizard.awaiting_stage_choice) {
         return lang === "pt-br"
           ? [
-              buildFollowup("APROFUNDAR (recomendado)", "APROFUNDAR"),
-              buildFollowup("GERAR DOCS", "GERAR_DOCS"),
-              buildFollowup("SAIR", "SAIR"),
+              buildFollowup("🔍 APROFUNDAR (recomendado)", "APROFUNDAR"),
+              buildFollowup("📄 GERAR DOCS", "GERAR_DOCS"),
+              buildFollowup("🚪 SAIR", "SAIR"),
+              ...navActions,
               ...base,
             ]
           : [
-              buildFollowup("DEEPEN (recommended)", "DEEPEN"),
-              buildFollowup("GENERATE DOCS", "GENERATE_DOCS"),
-              buildFollowup("EXIT", "EXIT"),
+              buildFollowup("🔍 DEEPEN (recommended)", "DEEPEN"),
+              buildFollowup("📄 GENERATE DOCS", "GENERATE_DOCS"),
+              buildFollowup("🚪 EXIT", "EXIT"),
+              ...navActions,
               ...base,
             ];
       }
 
-      // Awaiting a question ? show options + AI actions
+      // Awaiting a question ? show options + AI actions + navigation
       if (wizard.awaiting_answer_for && wizard.last_question) {
         const q = wizard.last_question;
-        const actions: vscode.ChatFollowup[] =
+
+        // AI assistance actions
+        const aiActions: vscode.ChatFollowup[] =
           lang === "pt-br"
             ? [
-                buildFollowup("EXPLICAR", "EXPLICAR"),
-                buildFollowup("REFORMULAR", "REFORMULAR"),
-                buildFollowup("SUGERIR", "SUGERIR"),
+                buildFollowup("💡 EXPLICAR", "EXPLICAR"),
+                buildFollowup("🔄 REFORMULAR", "REFORMULAR"),
+                buildFollowup("✨ SUGERIR", "SUGERIR"),
               ]
             : [
-                buildFollowup("EXPLAIN", "EXPLICAR"),
-                buildFollowup("REFRAME", "REFORMULAR"),
-                buildFollowup("SUGGEST", "SUGERIR"),
+                buildFollowup("💡 EXPLAIN", "EXPLICAR"),
+                buildFollowup("🔄 REFRAME", "REFORMULAR"),
+                buildFollowup("✨ SUGGEST", "SUGERIR"),
               ];
+
+        // Navigation actions for current question
+        const questionNav: vscode.ChatFollowup[] = [];
+
+        // Back button (only if we have previous questions)
+        if (wizard.asked && wizard.asked.length > 0) {
+          questionNav.push(
+            buildFollowup(
+              lang === "pt-br" ? "↩️ VOLTAR" : "↩️ BACK",
+              lang === "pt-br" ? "VOLTAR" : "BACK"
+            )
+          );
+        }
+
+        // Skip button (only for non-required questions)
+        if (!q.validation?.required) {
+          questionNav.push(
+            buildFollowup(
+              lang === "pt-br" ? "⏭️ PULAR" : "⏭️ SKIP",
+              lang === "pt-br" ? "PULAR" : "SKIP"
+            )
+          );
+        }
 
         if (q.type === "enum" && q.options?.length) {
           const opts = q.options
-            .slice(0, 10)
-            .map((o) => buildFollowup(o.label[lang], `${o.value}`));
-          const backLabel =
-            lang === "pt-br" ? "VOLTAR (refazer)" : "BACK (re-answer)";
+            .slice(0, 8)
+            .map((o) => buildFollowup(`${o.label[lang]}`, `${o.value}`));
           return [
             ...opts,
-            buildFollowup(backLabel, lang === "pt-br" ? "VOLTAR" : "BACK"),
-            ...actions,
+            ...questionNav,
+            ...aiActions,
+            ...navActions,
             ...base,
           ];
         }
@@ -322,26 +395,25 @@ export function registerBusinessOpsChat(context: vscode.ExtensionContext) {
               )
             );
 
-          const backLabel =
-            lang === "pt-br" ? "VOLTAR (refazer)" : "BACK (re-answer)";
           return [
             ...suggestions,
-            buildFollowup(backLabel, lang === "pt-br" ? "VOLTAR" : "BACK"),
-            ...actions,
+            ...questionNav,
+            ...aiActions,
+            ...navActions,
             ...base,
           ];
         }
 
-        const backLabel =
-          lang === "pt-br" ? "VOLTAR (refazer)" : "BACK (re-answer)";
+        // Text questions
         return [
-          buildFollowup(backLabel, lang === "pt-br" ? "VOLTAR" : "BACK"),
-          ...actions,
+          ...questionNav,
+          ...aiActions,
+          ...navActions,
           ...base,
         ];
       }
 
-      return base;
+      return [...navActions, ...base];
     },
   };
 
@@ -567,9 +639,15 @@ async function handleBack(stream: any, lang: "pt-br" | "en") {
     md(
       stream,
       lang === "pt-br"
-        ? "Nenhuma pergunta anterior para voltar.\n\n"
-        : "No previous question to go back to.\n\n"
+        ? "⚠️ Nenhuma pergunta anterior para voltar. Você está no início do intake.\n\n"
+        : "⚠️ No previous question to go back to. You're at the beginning of the intake.\n\n"
     );
+
+    // If there's a current question, re-render it
+    if (wizard.last_question) {
+      const aiSuggestions = buildAutoSuggestions(wizard.last_question, answers, lang);
+      await renderQuestion(stream, wizard.last_question, lang, aiSuggestions);
+    }
     return;
   }
 
@@ -580,10 +658,11 @@ async function handleBack(stream: any, lang: "pt-br" | "en") {
     md(
       stream,
       lang === "pt-br"
-        ? "Não encontrei a pergunta anterior.\n\n"
-        : "Could not find the previous question.\n\n"
+        ? "⚠️ Não encontrei a pergunta anterior. Isso pode acontecer se o workflow foi atualizado.\n\n"
+        : "⚠️ Could not find the previous question. This may happen if the workflow was updated.\n\n"
     );
     await saveWizardOnly(answers);
+    await askNext(stream, lang);
     return;
   }
 
@@ -602,13 +681,147 @@ async function handleBack(stream: any, lang: "pt-br" | "en") {
   await saveWizardOnly(answers);
 
   const aiSuggestions = buildAutoSuggestions(q, answers, lang);
+  const progress = getProgressInfo(wizard, answers);
+
   md(
     stream,
     lang === "pt-br"
-      ? "↩️ Voltando para a pergunta anterior.\n\n"
-      : "↩️ Going back to the previous question.\n\n"
+      ? `↩️ Voltando para a pergunta anterior.\n\n**Progresso:** ${renderProgressBar(progress.percent)} (${progress.asked}/${progress.total} perguntas)\n\n`
+      : `↩️ Going back to the previous question.\n\n**Progress:** ${renderProgressBar(progress.percent)} (${progress.asked}/${progress.total} questions)\n\n`
   );
   await renderQuestion(stream, q, lang, aiSuggestions);
+}
+
+async function handleSkip(stream: any, lang: "pt-br" | "en") {
+  const { answers, company } = await loadState();
+  const wizard = ensureWizard(answers);
+
+  const q = wizard.last_question;
+  if (!q) {
+    md(
+      stream,
+      lang === "pt-br"
+        ? "⚠️ Nenhuma pergunta para pular.\n\n"
+        : "⚠️ No question to skip.\n\n"
+    );
+    return;
+  }
+
+  // Check if question is required
+  if (q.validation?.required) {
+    md(
+      stream,
+      lang === "pt-br"
+        ? `⚠️ Esta pergunta é **obrigatória** e não pode ser pulada.\n\nPor favor, responda: **${q.text["pt-br"]}**\n\n`
+        : `⚠️ This question is **required** and cannot be skipped.\n\nPlease answer: **${q.text["en"]}**\n\n`
+    );
+    const aiSuggestions = buildAutoSuggestions(q, answers, lang);
+    await renderQuestion(stream, q, lang, aiSuggestions);
+    return;
+  }
+
+  // Mark as asked but without saving an answer
+  markAsked(wizard, q.id);
+  wizard.last_question = null;
+  await saveWizardOnly(answers);
+
+  md(
+    stream,
+    lang === "pt-br"
+      ? `⏭️ Pulando: **${q.id}**. Você pode voltar depois.\n\n`
+      : `⏭️ Skipping: **${q.id}**. You can come back later.\n\n`
+  );
+
+  await askNext(stream, lang);
+}
+
+async function handleRestart(stream: any, lang: "pt-br" | "en", answers: any) {
+  const wizard = ensureWizard(answers);
+
+  // Clear all state
+  answers.answers = {};
+  answers.wizard = {
+    workflow_id: "businessops_wizard",
+    version: 0.2,
+    mode: "robust",
+    dynamic_enabled: true,
+    queue: [],
+    asked: [],
+    help_events: [],
+    pending_reset_prompt: false,
+    current_question_id: null,
+    awaiting_answer_for: null,
+    last_question: null,
+    awaiting_stage_choice: false,
+    completed: false,
+    completed_at: null,
+    active_stage: "CORE_INTAKE",
+  };
+
+  await saveWizardOnly(answers);
+
+  md(
+    stream,
+    lang === "pt-br"
+      ? "🔄 Recomeçando do zero. Todas as respostas foram limpas.\n\n"
+      : "🔄 Restarting from scratch. All answers have been cleared.\n\n"
+  );
+
+  await askNext(stream, lang);
+}
+
+async function showStatus(stream: any, lang: "pt-br" | "en") {
+  const { answers, company } = await loadState();
+  const wizard = ensureWizard(answers);
+  const progress = getProgressInfo(wizard, answers);
+
+  const answersObj = answers.answers || {};
+  const answeredKeys = Object.keys(answersObj).filter(k => answersObj[k] != null && answersObj[k] !== "");
+
+  md(
+    stream,
+    lang === "pt-br"
+      ? `📊 **Status do Intake**\n\n**Progresso:** ${renderProgressBar(progress.percent)}\n\n- ✅ Perguntas respondidas: ${progress.asked}\n- ⏳ Perguntas na fila: ${wizard.queue?.length || 0}\n- 📋 Estágio atual: ${wizard.active_stage || "CORE_INTAKE"}\n\n`
+      : `📊 **Intake Status**\n\n**Progress:** ${renderProgressBar(progress.percent)}\n\n- ✅ Questions answered: ${progress.asked}\n- ⏳ Questions in queue: ${wizard.queue?.length || 0}\n- 📋 Current stage: ${wizard.active_stage || "CORE_INTAKE"}\n\n`
+  );
+
+  if (answeredKeys.length > 0) {
+    md(
+      stream,
+      lang === "pt-br"
+        ? "**Respostas salvas:**\n"
+        : "**Saved answers:**\n"
+    );
+
+    for (const key of answeredKeys.slice(0, 10)) {
+      const val = answersObj[key];
+      const display = Array.isArray(val) ? val.join(", ") : String(val);
+      md(stream, `- \`${key}\`: ${display}\n`);
+    }
+
+    if (answeredKeys.length > 10) {
+      md(
+        stream,
+        lang === "pt-br"
+          ? `\n_(e mais ${answeredKeys.length - 10} respostas)_\n`
+          : `\n_(and ${answeredKeys.length - 10} more answers)_\n`
+      );
+    }
+  }
+
+  md(stream, "\n");
+
+  // If there's a pending question, show it again
+  if (wizard.awaiting_answer_for && wizard.last_question) {
+    md(
+      stream,
+      lang === "pt-br"
+        ? "---\n\n**Pergunta atual:**\n\n"
+        : "---\n\n**Current question:**\n\n"
+    );
+    const aiSuggestions = buildAutoSuggestions(wizard.last_question, answers, lang);
+    await renderQuestion(stream, wizard.last_question, lang, aiSuggestions);
+  }
 }
 
 async function askNext(stream: any, lang: "pt-br" | "en") {
@@ -635,6 +848,18 @@ async function askNext(stream: any, lang: "pt-br" | "en") {
   wizard.last_question = q;
 
   await saveWizardOnly(answers);
+
+  // Show progress
+  const progress = getProgressInfo(wizard, answers);
+  if (progress.total > 0) {
+    md(
+      stream,
+      lang === "pt-br"
+        ? `**Progresso:** ${renderProgressBar(progress.percent)} (${progress.asked}/${progress.total})\n\n`
+        : `**Progress:** ${renderProgressBar(progress.percent)} (${progress.asked}/${progress.total})\n\n`
+    );
+  }
+
   const aiSuggestions = buildAutoSuggestions(q, answers, lang);
   await renderQuestion(stream, q, lang, aiSuggestions);
 }
@@ -1052,7 +1277,7 @@ async function handleResetChoice(
 
 function helpText(lang: "pt-br" | "en") {
   if (lang === "pt-br") {
-    return `Olá! Eu sou o **@BusinessOps**.\n\nComandos:\n- \`/intake\` → intake básico (1 pergunta por vez)\n- \`/render\` → gerar docs\n- \`/help\` → ajuda\n\nDurante perguntas você pode usar: \`EXPLICAR\`, \`REFORMULAR\`, \`SUGERIR\`.\n`;
+    return `Olá! Eu sou o **@BusinessOps** 👋\n\n## Comandos Principais\n- \`/intake\` → iniciar intake (1 pergunta por vez)\n- \`/render\` → gerar documentação\n- \`/help\` → esta ajuda\n\n## Navegação Durante o Intake\n- \`VOLTAR\` → voltar para a pergunta anterior\n- \`PULAR\` → pular pergunta (se não for obrigatória)\n- \`RECOMEÇAR\` → limpar tudo e começar do zero\n- \`STATUS\` → ver progresso e respostas salvas\n\n## Assistência da IA\nDurante perguntas você pode usar:\n- \`EXPLICAR\` → explicar a pergunta em detalhes\n- \`REFORMULAR\` → ver a pergunta de outra forma\n- \`SUGERIR\` → receber sugestões de resposta\n\n_💡 Dica: clique nos botões sugeridos para navegar mais rápido!_\n`;
   }
-  return `Hi! I'm **@BusinessOps**.\n\nCommands:\n- \`/intake\` → basic intake (one question at a time)\n- \`/render\` → generate docs\n- \`/help\` → help\n\nDuring questions you can use: \`EXPLICAR\`, \`REFORMULAR\`, \`SUGERIR\`.\n`;
+  return `Hi! I'm **@BusinessOps** 👋\n\n## Main Commands\n- \`/intake\` → start intake (one question at a time)\n- \`/render\` → generate documentation\n- \`/help\` → this help\n\n## Intake Navigation\n- \`BACK\` → go back to previous question\n- \`SKIP\` → skip question (if not required)\n- \`RESTART\` → clear all and start over\n- \`STATUS\` → view progress and saved answers\n\n## AI Assistance\nDuring questions you can use:\n- \`EXPLICAR\` → explain the question in detail\n- \`REFORMULAR\` → see the question differently\n- \`SUGERIR\` → get answer suggestions\n\n_💡 Tip: click the suggested buttons to navigate faster!_\n`;
 }
