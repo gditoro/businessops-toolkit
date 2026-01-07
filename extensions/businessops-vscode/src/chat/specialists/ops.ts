@@ -1,5 +1,6 @@
 import { Question } from "../schema";
 import { OrchestratorContext } from "../orchestrator";
+import { getSpecialistMethodRecommendations, formatMethodSuggestions } from "../methodAdvisor";
 
 /**
  * Operations Specialist - Generic for all industries
@@ -140,4 +141,237 @@ export function opsSpecialist(ctx: OrchestratorContext): Question[] {
   });
 
   return questions;
+}
+
+/**
+ * Generate Operations Analysis Report
+ */
+export function generateOpsAnalysis(
+  ctx: OrchestratorContext,
+  lang: "pt-br" | "en"
+): string {
+  const company = ctx.company?.company || {};
+  const ops = company.ops || {};
+  const stage = ctx.stage || company.stage || "idea";
+  const industry = ctx.industry || company.sector || "general";
+
+  const outsourced = ops.outsourced_services || [];
+  const channels = ops.sales_channels || [];
+  const challenges = ops.key_challenges || [];
+  const inventoryModel = ops.inventory_model;
+  const serviceDelivery = ops.service_delivery;
+
+  // Determine what data we have vs missing
+  const hasOutsourcedData = outsourced.length > 0;
+  const hasChannelsData = channels.length > 0;
+  const hasChallengesData = challenges.length > 0;
+
+  // Build missing data prompt
+  const missingData: string[] = [];
+  if (!hasOutsourcedData) missingData.push(lang === "pt-br" ? "Serviços terceirizados" : "Outsourced services");
+  if (!hasChannelsData) missingData.push(lang === "pt-br" ? "Canais de venda" : "Sales channels");
+  if (!hasChallengesData) missingData.push(lang === "pt-br" ? "Desafios operacionais" : "Operational challenges");
+
+  const methodRecs = getSpecialistMethodRecommendations(ctx, "OPS");
+  const methodsSection = formatMethodSuggestions(methodRecs, lang);
+
+  if (lang === "pt-br") {
+    return `# ⚙️ Análise de Operações
+
+## Perfil Operacional
+- **Estágio:** ${translateStage(stage, lang)}
+- **Indústria:** ${industry}
+${inventoryModel ? `- **Modelo de estoque:** ${inventoryModel}` : ""}
+${serviceDelivery ? `- **Entrega de serviços:** ${serviceDelivery}` : ""}
+
+---
+
+## 🔄 Serviços Terceirizados
+${hasOutsourcedData
+  ? outsourced.map((s: string) => `- ${s}`).join("\n")
+  : "_Não informado. Use `/intake` para responder._"}
+
+---
+
+## 📢 Canais de Venda
+${hasChannelsData
+  ? channels.map((c: string) => `- ${c}`).join("\n")
+  : "_Não informado. Use `/intake` para responder._"}
+
+---
+
+## ⚠️ Desafios Identificados
+${hasChallengesData
+  ? challenges.map((c: string) => `- ${getChallengeName(c, lang)}`).join("\n")
+  : "_Não informado. Use `/intake` para responder._"}
+
+---
+
+## 📊 Recomendações
+
+${getOpsRecommendations(challenges, stage, lang)}
+
+---
+
+## 📈 KPIs Operacionais Sugeridos
+
+| KPI | Fórmula/Descrição | Meta |
+|-----|-------------------|------|
+| Eficiência operacional | Output / Input | Melhorar 10%/ano |
+| Lead time | Tempo pedido → entrega | Reduzir continuamente |
+| Taxa de erro | Erros / Total operações | < 1% |
+| NPS operacional | Pesquisa de satisfação | > 50 |
+| Custo por transação | Custo op. / Transações | Reduzir 5%/ano |
+
+${missingData.length > 0 ? `\n---\n\n⚠️ **Dados faltando para análise completa:**\n${missingData.map(d => `- ${d}`).join("\n")}\n\n_Use \`/intake\` para completar as informações._` : ""}
+${methodsSection}
+`;
+  } else {
+    return `# ⚙️ Operations Analysis
+
+## Operational Profile
+- **Stage:** ${translateStage(stage, lang)}
+- **Industry:** ${industry}
+${inventoryModel ? `- **Inventory model:** ${inventoryModel}` : ""}
+${serviceDelivery ? `- **Service delivery:** ${serviceDelivery}` : ""}
+
+---
+
+## 🔄 Outsourced Services
+${hasOutsourcedData
+  ? outsourced.map((s: string) => `- ${s}`).join("\n")
+  : "_Not provided. Use `/intake` to answer._"}
+
+---
+
+## 📢 Sales Channels
+${hasChannelsData
+  ? channels.map((c: string) => `- ${c}`).join("\n")
+  : "_Not provided. Use `/intake` to answer._"}
+
+---
+
+## ⚠️ Identified Challenges
+${hasChallengesData
+  ? challenges.map((c: string) => `- ${getChallengeName(c, lang)}`).join("\n")
+  : "_Not provided. Use `/intake` to answer._"}
+
+---
+
+## 📊 Recommendations
+
+${getOpsRecommendations(challenges, stage, lang)}
+
+---
+
+## 📈 Suggested Operational KPIs
+
+| KPI | Formula/Description | Target |
+|-----|---------------------|--------|
+| Operational efficiency | Output / Input | Improve 10%/year |
+| Lead time | Order → Delivery time | Reduce continuously |
+| Error rate | Errors / Total operations | < 1% |
+| Operational NPS | Satisfaction survey | > 50 |
+| Cost per transaction | Op. cost / Transactions | Reduce 5%/year |
+
+${missingData.length > 0 ? `\n---\n\n⚠️ **Missing data for complete analysis:**\n${missingData.map(d => `- ${d}`).join("\n")}\n\n_Use \`/intake\` to complete the information._` : ""}
+${methodsSection}
+`;
+  }
+}
+
+function translateStage(stage: string, lang: "pt-br" | "en"): string {
+  const stages: Record<string, Record<string, string>> = {
+    idea: { "pt-br": "Ideia", en: "Idea" },
+    mvp: { "pt-br": "MVP", en: "MVP" },
+    traction: { "pt-br": "Tração", en: "Traction" },
+    growth: { "pt-br": "Crescimento", en: "Growth" },
+    scale: { "pt-br": "Escala", en: "Scale" },
+    mature: { "pt-br": "Maturidade", en: "Mature" },
+  };
+  return stages[stage.toLowerCase()]?.[lang] || stage;
+}
+
+function getChallengeName(challenge: string, lang: "pt-br" | "en"): string {
+  const names: Record<string, Record<string, string>> = {
+    CASH_FLOW: { "pt-br": "Fluxo de caixa", en: "Cash flow" },
+    HIRING: { "pt-br": "Contratação / talentos", en: "Hiring / talent" },
+    PROCESSES: { "pt-br": "Processos desorganizados", en: "Disorganized processes" },
+    TECHNOLOGY: { "pt-br": "Tecnologia / sistemas", en: "Technology / systems" },
+    COMPLIANCE: { "pt-br": "Compliance / regulatório", en: "Compliance / regulatory" },
+    SALES: { "pt-br": "Vendas / aquisição de clientes", en: "Sales / customer acquisition" },
+    SCALE: { "pt-br": "Escalar operação", en: "Scaling operations" },
+    SUPPLY_CHAIN: { "pt-br": "Cadeia de suprimentos", en: "Supply chain" },
+  };
+  return names[challenge]?.[lang] || challenge;
+}
+
+function getOpsRecommendations(challenges: string[], stage: string, lang: "pt-br" | "en"): string {
+  const recs: string[] = [];
+
+  if (lang === "pt-br") {
+    if (challenges.includes("PROCESSES")) {
+      recs.push("🔧 **Processos:** Implemente Kanban para visualizar fluxos. Use `/method kanban`");
+      recs.push("🧹 **Organização:** Aplique 5S para organizar ambiente. Use `/method five-s`");
+    }
+    if (challenges.includes("SCALE")) {
+      recs.push("📈 **Escala:** Use Six Sigma para reduzir variabilidade. Use `/method six-sigma`");
+      recs.push("🔄 **Melhoria contínua:** Implemente Kaizen. Use `/method kaizen`");
+    }
+    if (challenges.includes("CASH_FLOW")) {
+      recs.push("💰 **Fluxo de caixa:** Analise com `/method cash-flow`");
+    }
+    if (challenges.includes("SUPPLY_CHAIN")) {
+      recs.push("🔗 **Supply chain:** Analise cadeia de valor com `/method value-chain`");
+    }
+    if (recs.length === 0) {
+      recs.push("✅ Continue monitorando KPIs operacionais");
+      recs.push("📋 Documente processos com `/method bpmn`");
+    }
+  } else {
+    if (challenges.includes("PROCESSES")) {
+      recs.push("🔧 **Processes:** Implement Kanban to visualize flows. Use `/method kanban`");
+      recs.push("🧹 **Organization:** Apply 5S to organize environment. Use `/method five-s`");
+    }
+    if (challenges.includes("SCALE")) {
+      recs.push("📈 **Scale:** Use Six Sigma to reduce variability. Use `/method six-sigma`");
+      recs.push("🔄 **Continuous improvement:** Implement Kaizen. Use `/method kaizen`");
+    }
+    if (challenges.includes("CASH_FLOW")) {
+      recs.push("💰 **Cash flow:** Analyze with `/method cash-flow`");
+    }
+    if (challenges.includes("SUPPLY_CHAIN")) {
+      recs.push("🔗 **Supply chain:** Analyze value chain with `/method value-chain`");
+    }
+    if (recs.length === 0) {
+      recs.push("✅ Continue monitoring operational KPIs");
+      recs.push("📋 Document processes with `/method bpmn`");
+    }
+  }
+
+  return recs.join("\n\n");
+}
+
+export function getOpsPrompt(lang: "pt-br" | "en"): string {
+  return lang === "pt-br"
+    ? `Você é um especialista em operações empresariais, com foco em:
+- Terceirização e gestão de fornecedores
+- Canais de venda e distribuição
+- Modelos de entrega (estoque, dropship, serviços)
+- Otimização de processos operacionais
+- Gestão de desafios operacionais
+- Métricas e KPIs operacionais
+
+Responda de forma prática e objetiva.
+Recomende métodos específicos quando apropriado (Kanban, 5S, Kaizen, etc.).`
+    : `You are an operations specialist focusing on:
+- Outsourcing and vendor management
+- Sales channels and distribution
+- Delivery models (inventory, dropship, services)
+- Operational process optimization
+- Operational challenges management
+- Operational metrics and KPIs
+
+Respond practically and objectively.
+Recommend specific methods when appropriate (Kanban, 5S, Kaizen, etc.).`;
 }

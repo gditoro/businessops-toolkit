@@ -78,6 +78,12 @@ export type WizardState = {
   awaiting_stage_choice?: boolean;
 
   /**
+   * Specialist selector flag:
+   * quando o usuário quer conversar com um especialista específico
+   */
+  awaiting_specialist_choice?: boolean;
+
+  /**
    * Logs de uso das ações assistidas por AI:
    * - EXPLICAR
    * - REFORMULAR

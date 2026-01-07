@@ -1,5 +1,6 @@
 import { Question } from "../schema";
 import { OrchestratorContext } from "../orchestrator";
+import { getSpecialistMethodRecommendations, formatMethodSuggestions } from "../methodAdvisor";
 
 /**
  * Legal Specialist - Generic for all industries
@@ -197,4 +198,288 @@ export function legalSpecialist(ctx: OrchestratorContext): Question[] {
   });
 
   return questions;
+}
+
+/**
+ * Generate Legal Analysis Report
+ */
+export function generateLegalAnalysis(
+  ctx: OrchestratorContext,
+  lang: "pt-br" | "en"
+): string {
+  const company = ctx.company?.company || {};
+  const legal = company.legal || {};
+  const stage = ctx.stage || company.stage || "idea";
+
+  const founders = legal.founders;
+  const partnershipAgreement = legal.partnership_agreement;
+  const ipAssets = legal.ip_assets || [];
+  const keyContracts = legal.key_contracts || [];
+  const legalSupport = legal.legal_support;
+  const insurance = legal.insurance || [];
+
+  // Risk analysis
+  const risks: string[] = [];
+  const gaps: string[] = [];
+  const actions: string[] = [];
+
+  if (founders !== "SOLO" && partnershipAgreement !== "YES_COMPLETE") {
+    risks.push(lang === "pt-br" ? "🔴 Sem acordo de sócios formalizado" : "🔴 No formalized partnership agreement");
+    actions.push(lang === "pt-br" ? "Formalizar contrato social/acordo de sócios" : "Formalize partnership/shareholders agreement");
+  }
+
+  if (partnershipAgreement === "IN_PROGRESS") {
+    gaps.push(lang === "pt-br" ? "Acordo de sócios em elaboração" : "Partnership agreement in progress");
+  }
+
+  if (!ipAssets.includes("TRADEMARK") && !ipAssets.includes("NONE")) {
+    gaps.push(lang === "pt-br" ? "Marca não registrada" : "Trademark not registered");
+    actions.push(lang === "pt-br" ? "Registrar marca no INPI" : "Register trademark");
+  }
+
+  if (keyContracts.includes("NONE") || keyContracts.length === 0) {
+    gaps.push(lang === "pt-br" ? "Contratos não formalizados" : "Contracts not formalized");
+    actions.push(lang === "pt-br" ? "Formalizar contratos-chave" : "Formalize key contracts");
+  }
+
+  if (legalSupport === "NONE") {
+    gaps.push(lang === "pt-br" ? "Sem suporte jurídico" : "No legal support");
+    actions.push(lang === "pt-br" ? "Considerar assessoria jurídica" : "Consider legal counsel");
+  }
+
+  if (insurance.includes("NONE")) {
+    gaps.push(lang === "pt-br" ? "Sem seguros contratados" : "No insurance contracted");
+  }
+
+  // Missing data
+  const missingData: string[] = [];
+  if (!founders) missingData.push(lang === "pt-br" ? "Estrutura societária" : "Ownership structure");
+  if (!partnershipAgreement) missingData.push(lang === "pt-br" ? "Acordo de sócios" : "Partnership agreement");
+  if (ipAssets.length === 0) missingData.push(lang === "pt-br" ? "Ativos de PI" : "IP assets");
+
+  const methodRecs = getSpecialistMethodRecommendations(ctx, "LEGAL");
+  const methodsSection = formatMethodSuggestions(methodRecs, lang);
+
+  if (lang === "pt-br") {
+    return `# ⚖️ Análise Jurídica
+
+## Estrutura Societária
+- **Fundadores:** ${getFoundersLabel(founders, lang)}
+- **Acordo de sócios:** ${getAgreementLabel(partnershipAgreement, lang)}
+- **Suporte jurídico:** ${getSupportLabel(legalSupport, lang)}
+
+---
+
+## 🔴 Riscos Jurídicos
+${risks.length > 0 ? risks.map(r => `- ${r}`).join("\n") : "- Nenhum risco crítico identificado"}
+
+---
+
+## 📊 Lacunas Identificadas
+${gaps.length > 0 ? gaps.map(g => `- ${g}`).join("\n") : "- Nenhuma lacuna significativa"}
+
+---
+
+## ✅ Ações Recomendadas
+${actions.length > 0 ? actions.map((a, i) => `${i + 1}. ${a}`).join("\n") : "- Continue monitorando questões jurídicas"}
+
+---
+
+## 🏷️ Propriedade Intelectual
+${ipAssets.length > 0 && !ipAssets.includes("NONE")
+  ? ipAssets.map((ip: string) => `- ${getIPLabel(ip, lang)}`).join("\n")
+  : "- Nenhum ativo de PI registrado"}
+
+---
+
+## 📝 Contratos-Chave
+${keyContracts.length > 0 && !keyContracts.includes("NONE")
+  ? keyContracts.map((c: string) => `- ${getContractLabel(c, lang)}`).join("\n")
+  : "- Nenhum contrato formalizado"}
+
+---
+
+## 🛡️ Seguros
+${insurance.length > 0 && !insurance.includes("NONE")
+  ? insurance.map((i: string) => `- ${getInsuranceLabel(i, lang)}`).join("\n")
+  : "- Nenhum seguro contratado"}
+
+---
+
+## 📋 Checklist Jurídico
+
+${getLegalChecklist(stage, lang)}
+
+${missingData.length > 0 ? `\n---\n\n⚠️ **Dados faltando:**\n${missingData.map(d => `- ${d}`).join("\n")}\n\n_Use \`/intake\` para completar._` : ""}
+${methodsSection}
+`;
+  } else {
+    return `# ⚖️ Legal Analysis
+
+## Ownership Structure
+- **Founders:** ${getFoundersLabel(founders, lang)}
+- **Partnership agreement:** ${getAgreementLabel(partnershipAgreement, lang)}
+- **Legal support:** ${getSupportLabel(legalSupport, lang)}
+
+---
+
+## 🔴 Legal Risks
+${risks.length > 0 ? risks.map(r => `- ${r}`).join("\n") : "- No critical risks identified"}
+
+---
+
+## 📊 Identified Gaps
+${gaps.length > 0 ? gaps.map(g => `- ${g}`).join("\n") : "- No significant gaps"}
+
+---
+
+## ✅ Recommended Actions
+${actions.length > 0 ? actions.map((a, i) => `${i + 1}. ${a}`).join("\n") : "- Continue monitoring legal matters"}
+
+---
+
+## 🏷️ Intellectual Property
+${ipAssets.length > 0 && !ipAssets.includes("NONE")
+  ? ipAssets.map((ip: string) => `- ${getIPLabel(ip, lang)}`).join("\n")
+  : "- No IP assets registered"}
+
+---
+
+## 📝 Key Contracts
+${keyContracts.length > 0 && !keyContracts.includes("NONE")
+  ? keyContracts.map((c: string) => `- ${getContractLabel(c, lang)}`).join("\n")
+  : "- No contracts formalized"}
+
+---
+
+## 🛡️ Insurance
+${insurance.length > 0 && !insurance.includes("NONE")
+  ? insurance.map((i: string) => `- ${getInsuranceLabel(i, lang)}`).join("\n")
+  : "- No insurance contracted"}
+
+---
+
+## 📋 Legal Checklist
+
+${getLegalChecklist(stage, lang)}
+
+${missingData.length > 0 ? `\n---\n\n⚠️ **Missing data:**\n${missingData.map(d => `- ${d}`).join("\n")}\n\n_Use \`/intake\` to complete._` : ""}
+${methodsSection}
+`;
+  }
+}
+
+function getFoundersLabel(value: string | undefined, lang: "pt-br" | "en"): string {
+  const labels: Record<string, Record<string, string>> = {
+    SOLO: { "pt-br": "1 (fundador solo)", en: "1 (solo founder)" },
+    TWO: { "pt-br": "2 sócios", en: "2 partners" },
+    THREE_FOUR: { "pt-br": "3-4 sócios", en: "3-4 partners" },
+    FIVE_PLUS: { "pt-br": "5+ sócios", en: "5+ partners" },
+    CORP_OWNED: { "pt-br": "Pertence a outra empresa", en: "Owned by another company" },
+  };
+  return labels[value || ""]?.[lang] || (lang === "pt-br" ? "_Não informado_" : "_Not provided_");
+}
+
+function getAgreementLabel(value: string | undefined, lang: "pt-br" | "en"): string {
+  const labels: Record<string, Record<string, string>> = {
+    YES_COMPLETE: { "pt-br": "Sim, completo", en: "Yes, complete" },
+    YES_BASIC: { "pt-br": "Sim, básico", en: "Yes, basic" },
+    IN_PROGRESS: { "pt-br": "Em elaboração", en: "In progress" },
+    NO: { "pt-br": "Não", en: "No" },
+    SOLO: { "pt-br": "N/A (sócio único)", en: "N/A (sole owner)" },
+  };
+  return labels[value || ""]?.[lang] || (lang === "pt-br" ? "_Não informado_" : "_Not provided_");
+}
+
+function getSupportLabel(value: string | undefined, lang: "pt-br" | "en"): string {
+  const labels: Record<string, Record<string, string>> = {
+    NONE: { "pt-br": "Nenhum", en: "None" },
+    OCCASIONAL: { "pt-br": "Ocasional", en: "Occasional" },
+    RETAINER: { "pt-br": "Contrato mensal", en: "Retainer" },
+    INHOUSE: { "pt-br": "Jurídico interno", en: "In-house counsel" },
+  };
+  return labels[value || ""]?.[lang] || (lang === "pt-br" ? "_Não informado_" : "_Not provided_");
+}
+
+function getIPLabel(value: string, lang: "pt-br" | "en"): string {
+  const labels: Record<string, Record<string, string>> = {
+    TRADEMARK: { "pt-br": "Marca registrada", en: "Trademark" },
+    PATENT: { "pt-br": "Patente", en: "Patent" },
+    COPYRIGHT: { "pt-br": "Direitos autorais", en: "Copyright" },
+    TRADE_SECRET: { "pt-br": "Segredo comercial", en: "Trade secret" },
+    DOMAIN: { "pt-br": "Domínios", en: "Domains" },
+  };
+  return labels[value]?.[lang] || value;
+}
+
+function getContractLabel(value: string, lang: "pt-br" | "en"): string {
+  const labels: Record<string, Record<string, string>> = {
+    CUSTOMER: { "pt-br": "Contratos com clientes", en: "Customer contracts" },
+    SUPPLIER: { "pt-br": "Contratos com fornecedores", en: "Supplier contracts" },
+    EMPLOYEE: { "pt-br": "Contratos de trabalho", en: "Employment contracts" },
+    NDA: { "pt-br": "NDAs", en: "NDAs" },
+    PARTNERSHIP: { "pt-br": "Parcerias", en: "Partnerships" },
+  };
+  return labels[value]?.[lang] || value;
+}
+
+function getInsuranceLabel(value: string, lang: "pt-br" | "en"): string {
+  const labels: Record<string, Record<string, string>> = {
+    LIABILITY: { "pt-br": "Responsabilidade civil", en: "General liability" },
+    PROFESSIONAL: { "pt-br": "E&O", en: "E&O" },
+    CYBER: { "pt-br": "Cyber", en: "Cyber" },
+    PROPERTY: { "pt-br": "Patrimonial", en: "Property" },
+    DIRECTORS: { "pt-br": "D&O", en: "D&O" },
+    HEALTH: { "pt-br": "Saúde", en: "Health" },
+  };
+  return labels[value]?.[lang] || value;
+}
+
+function getLegalChecklist(stage: string, lang: "pt-br" | "en"): string {
+  if (lang === "pt-br") {
+    return `- [ ] Contrato social/atos constitutivos
+- [ ] Acordo de sócios (se > 1 sócio)
+- [ ] Vesting para fundadores (startups)
+- [ ] Contratos com clientes
+- [ ] Contratos com fornecedores
+- [ ] Contratos de trabalho
+- [ ] Termos de uso e políticas
+- [ ] Registro de marca
+- [ ] NDAs com colaboradores`;
+  }
+  return `- [ ] Articles of incorporation
+- [ ] Shareholders agreement (if > 1 owner)
+- [ ] Founder vesting (startups)
+- [ ] Customer contracts
+- [ ] Supplier contracts
+- [ ] Employment contracts
+- [ ] Terms of service and policies
+- [ ] Trademark registration
+- [ ] NDAs with team members`;
+}
+
+export function getLegalPrompt(lang: "pt-br" | "en"): string {
+  return lang === "pt-br"
+    ? `Você é um especialista em direito empresarial, com foco em:
+- Estrutura societária e acordos de sócios
+- Propriedade intelectual (marcas, patentes)
+- Contratos comerciais
+- Seguros empresariais
+- Compliance trabalhista
+- Due diligence para investimentos
+
+Responda de forma prática e objetiva.
+Alerte sobre riscos legais.
+Recomende métodos de análise quando apropriado.`
+    : `You are a corporate law specialist focusing on:
+- Corporate structure and shareholder agreements
+- Intellectual property (trademarks, patents)
+- Commercial contracts
+- Business insurance
+- Employment compliance
+- Investment due diligence
+
+Respond practically and objectively.
+Alert about legal risks.
+Recommend analysis methods when appropriate.`;
 }

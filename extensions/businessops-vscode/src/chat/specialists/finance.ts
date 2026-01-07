@@ -1,5 +1,6 @@
 import { Question } from "../schema";
 import { OrchestratorContext } from "../orchestrator";
+import { getSpecialistMethodRecommendations, formatMethodSuggestions } from "../methodAdvisor";
 
 /**
  * Finance Specialist - Generic for all industries
@@ -183,4 +184,194 @@ export function financeSpecialist(ctx: OrchestratorContext): Question[] {
   });
 
   return questions;
+}
+
+/**
+ * Generate Finance Analysis Report
+ */
+export function generateFinanceAnalysis(
+  ctx: OrchestratorContext,
+  lang: "pt-br" | "en"
+): string {
+  const company = ctx.company?.company || {};
+  const finance = company.finance || {};
+  const stage = ctx.stage || company.stage || "idea";
+
+  const fundingStatus = finance.funding_status;
+  const revenueStatus = finance.revenue_status;
+  const revenueModel = finance.revenue_model;
+  const bankAccount = finance.bank_account;
+  const runway = finance.runway;
+  const tools = finance.tools || [];
+
+  // Risk analysis
+  const risks: string[] = [];
+  const opportunities: string[] = [];
+  const actions: string[] = [];
+
+  if (runway === "LESS_3M") {
+    risks.push(lang === "pt-br" ? "🔴 Runway crítico (< 3 meses)" : "🔴 Critical runway (< 3 months)");
+    actions.push(lang === "pt-br" ? "Priorizar captação ou corte de custos" : "Prioritize fundraising or cost cutting");
+  } else if (runway === "3_6M") {
+    risks.push(lang === "pt-br" ? "⚠️ Runway curto (3-6 meses)" : "⚠️ Short runway (3-6 months)");
+    actions.push(lang === "pt-br" ? "Iniciar processo de captação" : "Start fundraising process");
+  }
+
+  if (bankAccount === "USING_PERSONAL") {
+    risks.push(lang === "pt-br" ? "⚠️ Usando conta pessoal" : "⚠️ Using personal account");
+    actions.push(lang === "pt-br" ? "Abrir conta PJ" : "Open business bank account");
+  }
+
+  if (revenueStatus === "PRE_REVENUE") {
+    opportunities.push(lang === "pt-br" ? "Foco em validação e primeiros clientes" : "Focus on validation and first customers");
+  }
+
+  if (fundingStatus === "SEEKING") {
+    actions.push(lang === "pt-br" ? "Preparar pitch deck e materiais de captação" : "Prepare pitch deck and fundraising materials");
+  }
+
+  if (tools.includes("SPREADSHEET") && !tools.includes("ERP")) {
+    opportunities.push(lang === "pt-br" ? "Oportunidade de automatizar gestão financeira" : "Opportunity to automate financial management");
+  }
+
+  // Missing data
+  const missingData: string[] = [];
+  if (!fundingStatus) missingData.push(lang === "pt-br" ? "Status de funding" : "Funding status");
+  if (!revenueStatus) missingData.push(lang === "pt-br" ? "Status de receita" : "Revenue status");
+  if (!revenueModel) missingData.push(lang === "pt-br" ? "Modelo de receita" : "Revenue model");
+
+  const methodRecs = getSpecialistMethodRecommendations(ctx, "FINANCE");
+  const methodsSection = formatMethodSuggestions(methodRecs, lang);
+
+  if (lang === "pt-br") {
+    return `# 💰 Análise Financeira
+
+## Perfil Financeiro
+- **Estágio:** ${translateStage(stage, lang)}
+- **Funding:** ${fundingStatus || "_Não informado_"}
+- **Receita:** ${revenueStatus || "_Não informado_"}
+- **Modelo:** ${revenueModel || "_Não informado_"}
+- **Runway:** ${runway || "_Não informado_"}
+
+---
+
+## 🔴 Riscos Financeiros
+${risks.length > 0 ? risks.map(r => `- ${r}`).join("\n") : "- Nenhum risco crítico identificado"}
+
+---
+
+## 🚀 Oportunidades
+${opportunities.length > 0 ? opportunities.map(o => `- ${o}`).join("\n") : "- Continue monitorando indicadores"}
+
+---
+
+## ✅ Ações Recomendadas
+${actions.length > 0 ? actions.map((a, i) => `${i + 1}. ${a}`).join("\n") : "- Manter controles financeiros atualizados"}
+
+---
+
+## 📊 KPIs Financeiros Essenciais
+
+| KPI | Descrição | Meta |
+|-----|-----------|------|
+| Burn Rate | Gasto mensal | Conhecer exatamente |
+| Runway | Meses de operação | > 12 meses |
+| MRR/ARR | Receita recorrente | Crescer mês a mês |
+| CAC | Custo de aquisição | < LTV/3 |
+| LTV | Lifetime value | > 3x CAC |
+| Margem Bruta | (Receita - CMV) / Receita | > 40% |
+
+---
+
+## 🛠️ Ferramentas em Uso
+${tools.length > 0 ? tools.map((t: string) => `- ${t}`).join("\n") : "- Nenhuma ferramenta registrada"}
+
+${missingData.length > 0 ? `\n---\n\n⚠️ **Dados faltando:**\n${missingData.map(d => `- ${d}`).join("\n")}\n\n_Use \`/intake\` para completar._` : ""}
+${methodsSection}
+`;
+  } else {
+    return `# 💰 Financial Analysis
+
+## Financial Profile
+- **Stage:** ${translateStage(stage, lang)}
+- **Funding:** ${fundingStatus || "_Not provided_"}
+- **Revenue:** ${revenueStatus || "_Not provided_"}
+- **Model:** ${revenueModel || "_Not provided_"}
+- **Runway:** ${runway || "_Not provided_"}
+
+---
+
+## 🔴 Financial Risks
+${risks.length > 0 ? risks.map(r => `- ${r}`).join("\n") : "- No critical risks identified"}
+
+---
+
+## 🚀 Opportunities
+${opportunities.length > 0 ? opportunities.map(o => `- ${o}`).join("\n") : "- Continue monitoring indicators"}
+
+---
+
+## ✅ Recommended Actions
+${actions.length > 0 ? actions.map((a, i) => `${i + 1}. ${a}`).join("\n") : "- Keep financial controls updated"}
+
+---
+
+## 📊 Essential Financial KPIs
+
+| KPI | Description | Target |
+|-----|-------------|--------|
+| Burn Rate | Monthly spend | Know exactly |
+| Runway | Months of operation | > 12 months |
+| MRR/ARR | Recurring revenue | Grow month over month |
+| CAC | Acquisition cost | < LTV/3 |
+| LTV | Lifetime value | > 3x CAC |
+| Gross Margin | (Revenue - COGS) / Revenue | > 40% |
+
+---
+
+## 🛠️ Tools in Use
+${tools.length > 0 ? tools.map((t: string) => `- ${t}`).join("\n") : "- No tools registered"}
+
+${missingData.length > 0 ? `\n---\n\n⚠️ **Missing data:**\n${missingData.map(d => `- ${d}`).join("\n")}\n\n_Use \`/intake\` to complete._` : ""}
+${methodsSection}
+`;
+  }
+}
+
+function translateStage(stage: string, lang: "pt-br" | "en"): string {
+  const stages: Record<string, Record<string, string>> = {
+    idea: { "pt-br": "Ideia", en: "Idea" },
+    mvp: { "pt-br": "MVP", en: "MVP" },
+    traction: { "pt-br": "Tração", en: "Traction" },
+    growth: { "pt-br": "Crescimento", en: "Growth" },
+    scale: { "pt-br": "Escala", en: "Scale" },
+    mature: { "pt-br": "Maturidade", en: "Mature" },
+  };
+  return stages[stage.toLowerCase()]?.[lang] || stage;
+}
+
+export function getFinancePrompt(lang: "pt-br" | "en"): string {
+  return lang === "pt-br"
+    ? `Você é um especialista em finanças empresariais, com foco em:
+- Estrutura de capital e funding
+- Modelo de receita e pricing
+- Análise de runway e burn rate
+- Métricas SaaS (MRR, ARR, CAC, LTV)
+- Fluxo de caixa e projeções
+- Ferramentas financeiras
+
+Responda de forma prática e objetiva.
+Recomende métodos de análise financeira quando apropriado.
+Use /method dre, /method cash-flow, /method balance-sheet para análises.`
+    : `You are a corporate finance specialist focusing on:
+- Capital structure and funding
+- Revenue model and pricing
+- Runway and burn rate analysis
+- SaaS metrics (MRR, ARR, CAC, LTV)
+- Cash flow and projections
+- Financial tools
+
+Respond practically and objectively.
+Recommend financial analysis methods when appropriate.
+Use /method dre, /method cash-flow, /method balance-sheet for analyses.`;
 }

@@ -1,5 +1,6 @@
 import { Question } from "../schema";
 import { OrchestratorContext } from "../orchestrator";
+import { getSpecialistMethodRecommendations, formatMethodSuggestions } from "../methodAdvisor";
 
 /**
  * Compliance Specialist - Generic for all industries and countries
@@ -354,4 +355,217 @@ export function complianceSpecialist(ctx: OrchestratorContext): Question[] {
   }
 
   return questions;
+}
+
+/**
+ * Generate Compliance Analysis Report
+ */
+export function generateComplianceAnalysis(
+  ctx: OrchestratorContext,
+  lang: "pt-br" | "en"
+): string {
+  const company = ctx.company?.company || {};
+  const compliance = company.compliance || {};
+  const stage = ctx.stage || company.stage || "idea";
+  const country = ctx.country_mode || "BR";
+
+  const entityType = compliance.entity_type;
+  const taxReg = compliance.tax_registration;
+  const dataPrivacy = compliance.data_privacy;
+  const anvisaLicense = compliance.anvisa_license;
+  const brTaxRegime = compliance.br_tax_regime;
+
+  // Identify risks and gaps
+  const risks: string[] = [];
+  const gaps: string[] = [];
+  const actions: string[] = [];
+
+  if (!entityType || entityType === "NOT_FORMED") {
+    gaps.push(lang === "pt-br" ? "Empresa não constituída formalmente" : "Company not formally incorporated");
+    actions.push(lang === "pt-br" ? "Constituir entidade jurídica" : "Incorporate legal entity");
+  }
+
+  if (taxReg !== "YES") {
+    risks.push(lang === "pt-br" ? "⚠️ Regularização fiscal pendente" : "⚠️ Tax registration pending");
+    actions.push(lang === "pt-br" ? "Regularizar situação fiscal" : "Regularize tax status");
+  }
+
+  if (dataPrivacy === "YES_NOT_COMPLIANT") {
+    risks.push(lang === "pt-br" ? "🔴 LGPD/GDPR - não conforme" : "🔴 LGPD/GDPR - non-compliant");
+    actions.push(lang === "pt-br" ? "Implementar programa de privacidade" : "Implement privacy program");
+  }
+
+  if (anvisaLicense === "YES_NEED") {
+    gaps.push(lang === "pt-br" ? "Licença ANVISA necessária mas não obtida" : "ANVISA license needed but not obtained");
+    actions.push(lang === "pt-br" ? "Iniciar processo de licenciamento ANVISA" : "Start ANVISA licensing process");
+  }
+
+  // Missing data detection
+  const missingData: string[] = [];
+  if (!entityType) missingData.push(lang === "pt-br" ? "Tipo de entidade" : "Entity type");
+  if (!taxReg) missingData.push(lang === "pt-br" ? "Status fiscal" : "Tax status");
+  if (!dataPrivacy) missingData.push(lang === "pt-br" ? "Conformidade LGPD/GDPR" : "LGPD/GDPR compliance");
+
+  const methodRecs = getSpecialistMethodRecommendations(ctx, "COMPLIANCE");
+  const methodsSection = formatMethodSuggestions(methodRecs, lang);
+
+  if (lang === "pt-br") {
+    return `# 📋 Análise de Compliance
+
+## Perfil Regulatório
+- **País:** ${country}
+- **Estágio:** ${translateStage(stage, lang)}
+- **Entidade:** ${entityType || "_Não informado_"}
+- **Regime tributário:** ${brTaxRegime || "_Não informado_"}
+
+---
+
+## 🔴 Riscos Identificados
+${risks.length > 0 ? risks.map(r => `- ${r}`).join("\n") : "- Nenhum risco crítico identificado"}
+
+---
+
+## 📊 Lacunas de Conformidade
+${gaps.length > 0 ? gaps.map(g => `- ${g}`).join("\n") : "- Nenhuma lacuna significativa"}
+
+---
+
+## ✅ Ações Recomendadas
+${actions.length > 0 ? actions.map((a, i) => `${i + 1}. ${a}`).join("\n") : "- Continue monitorando conformidade"}
+
+---
+
+## 📅 Calendário de Obrigações
+
+${getComplianceCalendar(country, lang)}
+
+---
+
+## 🎯 Checklist de Conformidade
+
+${getComplianceChecklist(stage, country, lang)}
+
+${missingData.length > 0 ? `\n---\n\n⚠️ **Dados faltando:**\n${missingData.map(d => `- ${d}`).join("\n")}\n\n_Use \`/intake\` para completar._` : ""}
+${methodsSection}
+`;
+  } else {
+    return `# 📋 Compliance Analysis
+
+## Regulatory Profile
+- **Country:** ${country}
+- **Stage:** ${translateStage(stage, lang)}
+- **Entity:** ${entityType || "_Not provided_"}
+- **Tax regime:** ${brTaxRegime || "_Not provided_"}
+
+---
+
+## 🔴 Identified Risks
+${risks.length > 0 ? risks.map(r => `- ${r}`).join("\n") : "- No critical risks identified"}
+
+---
+
+## 📊 Compliance Gaps
+${gaps.length > 0 ? gaps.map(g => `- ${g}`).join("\n") : "- No significant gaps"}
+
+---
+
+## ✅ Recommended Actions
+${actions.length > 0 ? actions.map((a, i) => `${i + 1}. ${a}`).join("\n") : "- Continue monitoring compliance"}
+
+---
+
+## 📅 Obligations Calendar
+
+${getComplianceCalendar(country, lang)}
+
+---
+
+## 🎯 Compliance Checklist
+
+${getComplianceChecklist(stage, country, lang)}
+
+${missingData.length > 0 ? `\n---\n\n⚠️ **Missing data:**\n${missingData.map(d => `- ${d}`).join("\n")}\n\n_Use \`/intake\` to complete._` : ""}
+${methodsSection}
+`;
+  }
+}
+
+function translateStage(stage: string, lang: "pt-br" | "en"): string {
+  const stages: Record<string, Record<string, string>> = {
+    idea: { "pt-br": "Ideia", en: "Idea" },
+    mvp: { "pt-br": "MVP", en: "MVP" },
+    traction: { "pt-br": "Tração", en: "Traction" },
+    growth: { "pt-br": "Crescimento", en: "Growth" },
+    scale: { "pt-br": "Escala", en: "Scale" },
+    mature: { "pt-br": "Maturidade", en: "Mature" },
+  };
+  return stages[stage.toLowerCase()]?.[lang] || stage;
+}
+
+function getComplianceCalendar(country: string, lang: "pt-br" | "en"): string {
+  if (country === "BR") {
+    return lang === "pt-br"
+      ? `| Obrigação | Frequência | Prazo |
+|-----------|------------|-------|
+| DCTF | Mensal | Dia 15 |
+| EFD-Contribuições | Mensal | Dia 10 |
+| ECF | Anual | Julho |
+| ECD | Anual | Maio |
+| DIRF | Anual | Fevereiro |`
+      : `| Obligation | Frequency | Deadline |
+|------------|-----------|----------|
+| DCTF | Monthly | 15th |
+| EFD-Contributions | Monthly | 10th |
+| ECF | Annual | July |
+| ECD | Annual | May |
+| DIRF | Annual | February |`;
+  }
+  return lang === "pt-br"
+    ? "_Verifique requisitos específicos do seu país._"
+    : "_Check specific requirements for your country._";
+}
+
+function getComplianceChecklist(stage: string, country: string, lang: "pt-br" | "en"): string {
+  if (lang === "pt-br") {
+    return `- [ ] Entidade jurídica constituída
+- [ ] CNPJ/registro ativo
+- [ ] Alvará de funcionamento
+- [ ] Inscrição estadual/municipal
+- [ ] Certificado digital válido
+- [ ] Política de privacidade (LGPD)
+- [ ] Termos de uso atualizados`;
+  }
+  return `- [ ] Legal entity incorporated
+- [ ] Business registration active
+- [ ] Operating licenses valid
+- [ ] State/local registrations
+- [ ] Digital certificate valid
+- [ ] Privacy policy (GDPR)
+- [ ] Terms of service updated`;
+}
+
+export function getCompliancePrompt(lang: "pt-br" | "en"): string {
+  return lang === "pt-br"
+    ? `Você é um especialista em compliance e regulatório, com foco em:
+- Constituição de empresas e tipos societários
+- Obrigações fiscais e tributárias
+- LGPD e proteção de dados
+- Licenças regulatórias (ANVISA, etc.)
+- Compliance trabalhista
+- Certificações e auditorias
+
+Responda de forma prática e objetiva.
+Alerte sobre riscos e prazos.
+Recomende métodos de análise quando apropriado.`
+    : `You are a compliance and regulatory specialist focusing on:
+- Company incorporation and entity types
+- Tax and fiscal obligations
+- GDPR and data protection
+- Regulatory licenses (FDA, etc.)
+- Labor compliance
+- Certifications and audits
+
+Respond practically and objectively.
+Alert about risks and deadlines.
+Recommend analysis methods when appropriate.`;
 }

@@ -24,8 +24,47 @@
       {
         "id": "businessops",
         "name": "BusinessOps",
-        "description": "BusinessOps Toolkit AI agent (intake, plan, diagnose)",
-        "isSticky": true
+        "fullName": "BusinessOps Toolkit",
+        "description": "AI agent for structuring companies (intake, planning, diagnosis)",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "intake",
+            "description": "Start guided company intake (1 question at a time)"
+          },
+          {
+            "name": "generate",
+            "description": "Generate business documentation from collected data"
+          },
+          {
+            "name": "diagnose",
+            "description": "Generate organizational diagnostic report"
+          },
+          {
+            "name": "plan",
+            "description": "Create execution plan (7/30/90 days)"
+          },
+          {
+            "name": "swot",
+            "description": "Generate SWOT analysis"
+          },
+          {
+            "name": "canvas",
+            "description": "Generate Business Model Canvas"
+          },
+          {
+            "name": "methods",
+            "description": "List all available business methods and frameworks"
+          },
+          {
+            "name": "status",
+            "description": "Show current intake progress and saved answers"
+          },
+          {
+            "name": "help",
+            "description": "Show available commands and navigation tips"
+          }
+        ]
       }
     ],
     "commands": [

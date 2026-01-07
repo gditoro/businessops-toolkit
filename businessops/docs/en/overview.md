@@ -3,7 +3,7 @@
 <!-- BO:BEGIN GENERATED -->
 ## Gamma Crucis
 
-**One-liner:** A Gamma Crucis é uma empresa brasileira especializada na importação e distribuição de materiais médicos descartáveis.
+**One-liner:** Empresa que importa e distribui material médico no Brasil.
 
 **Mode:** BR
 **Pack(s):** health-import
